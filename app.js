@@ -25,8 +25,13 @@ app.use(BodyParser.urlencoded({extended:true}))
 app.use(BodyParser.json())
 app.use(express.static("/Static"))
 app.use('/Uploads',express.static('Uploads'))
+
+const allowedOrigins = [
+  'https://job-portal-topaz-eta.vercel.app', // use actual Vercel domain
+  'http://localhost:3000' // optional, for local dev
+];
 app.use(cors({
-    origin:process.env.Frontend_Url,
+    origin:allowedOrigins,
     credentials: true
 
 }))
@@ -51,7 +56,7 @@ mongoose.connect(process.env.DB_URL)
 
 const io = new Server(server,{
     cors:{
-        origin:process.env.Frontend_Url,
+        origin:allowedOrigins,
         credentials:true
     }
 })
