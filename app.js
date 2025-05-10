@@ -32,7 +32,7 @@ const allowedOrigins = [
   //https://job-portal-sable-five.vercel.app/
 ];
 app.use(cors({
-    origin:'https://job-portal-sable-five.vercel.app',
+    origin:process.env.Frontend_Url,
     credentials: true
 
 }))
@@ -54,7 +54,7 @@ mongoose.connect(process.env.DB_URL)
 
 const io = new Server(server,{
     cors:{
-        origin:'https://job-portal-sable-five.vercel.app',
+        origin:process.env.Frontend_Url,
         credentials:true,
         methods: ['GET', 'POST']
     }
