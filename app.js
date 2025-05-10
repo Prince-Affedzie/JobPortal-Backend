@@ -27,7 +27,7 @@ app.use(express.static("/Static"))
 app.use('/Uploads',express.static('Uploads'))
 
 const allowedOrigins = [
-  'https://job-portal-sable-five.vercel.app/', // use actual Vercel domain
+  'https://job-portal-sable-five.vercel.app', // use actual Vercel domain
   'http://localhost:3000' // optional, for local dev
 ];
 app.use(cors({
