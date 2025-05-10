@@ -31,17 +31,14 @@ const allowedOrigins = [
   'http://localhost:3000' // optional, for local dev
 ];
 app.use(cors({
-    origin:'https://job-portal-sable-five.vercel.app/',
+    origin:'https://job-portal-sable-five.vercel.app',
     credentials: true
 
 }))
 
 const server = http.createServer(app)
 
-app.use("/api",userRouter)
-app.use("/api",employerRoute)
-app.use("/api",seekRouter)
-app.use("/api",adminRouter)
+
 
 mongoose.connect(process.env.DB_URL)
        .then(()=>{
@@ -56,7 +53,7 @@ mongoose.connect(process.env.DB_URL)
 
 const io = new Server(server,{
     cors:{
-        origin:'https://job-portal-sable-five.vercel.app/',
+        origin:'https://job-portal-sable-five.vercel.app',
         credentials:true,
         methods: ['GET', 'POST']
     }
@@ -73,6 +70,11 @@ io.on('connection',(socket)=>{
     })
 
 })
+
+app.use("/api",userRouter)
+app.use("/api",employerRoute)
+app.use("/api",seekRouter)
+app.use("/api",adminRouter)
 
 app.options('*', cors());
 
