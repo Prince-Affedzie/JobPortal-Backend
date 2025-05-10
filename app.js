@@ -25,10 +25,11 @@ app.use(BodyParser.urlencoded({extended:true}))
 app.use(BodyParser.json())
 app.use(express.static("/Static"))
 app.use('/Uploads',express.static('Uploads'))
-
+app.set('trust proxy', 1);
 const allowedOrigins = [
   , // use actual Vercel domain
   'http://localhost:3000' // optional, for local dev
+  //https://job-portal-sable-five.vercel.app/
 ];
 app.use(cors({
     origin:'https://job-portal-sable-five.vercel.app',
