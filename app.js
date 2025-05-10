@@ -51,7 +51,7 @@ mongoose.connect(process.env.DB_URL)
 
 const io = new Server(server,{
     cors:{
-        origin:"http://localhost:3000",
+        origin:process.env.Frontend_Url,
         credentials:true
     }
 })
