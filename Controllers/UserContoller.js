@@ -41,7 +41,7 @@ const signUp = async(req,res)=>{
 
     await user.save()
     const token = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
-    res.cookie("token",token,{httpOnly:true,sameSite:"strict",secure:false})
+    res.cookie("token",token,{httpOnly:true,sameSite:"None",secure:true})
     res.status(200).json({message:"Registration Successful",role:user.role})
 }catch(err){
     console.log(err)
@@ -70,7 +70,7 @@ const login = async(req,res)=>{
             return res.status(401).json({message:"Invalid email or Password"})
         }
         const token = jwt.sign({id:findUser._id,role:findUser.role},process.env.token,{expiresIn:"1d"})
-        res.cookie("token",token,{httpOnly:true,sameSite:"strict",secure:false})
+        res.cookie("token",token,{httpOnly:true,sameSite:"None",secure:true})
         res.status(200).json({message:"Login Successful",role:findUser.role})
 
     }catch(err){
