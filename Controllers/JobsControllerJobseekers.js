@@ -20,7 +20,7 @@ function setSocketIO(ioInstance) {
 const allJobs = async(req,res)=>{
     try{
         let query = {}
-        const {category,search,type} = req.query
+        const {category,search,type,location} = req.query
 
         if(search){
             query.$or = [
@@ -31,11 +31,15 @@ const allJobs = async(req,res)=>{
         if(category && category !=="All Categories"){
            query.category =category
         }
+        if(location && location !=="All Regions"){
+            query["location.region"] = location
+        }
         if(type && type!== "All Types"){
             query.jobType = type
         }
-        console.log("Generated Query:", JSON.stringify(query, null, 2));
-        const jobs = await JobModel.find(query).limit(100).sort({createdAt:-1})
+       
+       
+        const jobs = await JobModel.find(query).sort({createdAt:-1})
         
         res.status(200).json(jobs)
 
@@ -48,7 +52,6 @@ const allJobs = async(req,res)=>{
 const viewJob = async(req,res)=>{
     try{
         const {Id} =req.params
-        console.log("I'm executing")
         const job = await JobModel.findById(Id)
         if(!job){
             return res.status(404).json({message:"Job not Found"})
@@ -296,12 +299,19 @@ const getMiniTasks = async(req,res)=>{
     try{
         let query ={}
         
-        const {search,category,subcategory} = req.query
+        const {search,category,subcategory,location, modeofDelivery} = req.query
         if(category && category !== "All Categories"){
             query.category = category
         }
         if(subcategory && subcategory !== "All Subcategories"){
             query.subcategory = subcategory
+        }
+
+        if(location && location !== "All Regions"){
+            query['address.region'] = location
+        }
+        if( modeofDelivery && modeofDelivery !=="All Modes"){
+            query.locationType =  modeofDelivery
         }
         
         if(search){
