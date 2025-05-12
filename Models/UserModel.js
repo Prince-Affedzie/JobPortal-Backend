@@ -50,6 +50,9 @@ const userSchema = new Schema({
     profileImage:{
         type:String
     },
+    idCard:{
+        type: String
+    },
     Bio:{
         type: String
     },

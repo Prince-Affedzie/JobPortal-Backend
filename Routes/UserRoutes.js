@@ -9,7 +9,11 @@ const {verify_token} = require("../MiddleWare/VerifyToken")
 userRouter.post("/user/signup",validateInput,signUp)
 userRouter.post("/user/login",login)
 userRouter.post("/user/logout",verify_token,logout)
-userRouter.put("/user/edit_profile",verify_token,upload.single("profileImage"),editProfile)
+userRouter.put("/user/edit_profile",verify_token,upload.fields([
+  { name: 'profileImage', maxCount: 1 },
+  { name: 'idCardImage', maxCount: 1 }
+]),editProfile)
+
 userRouter.put("/user/image_profile",verify_token,upload.single("profileImage"),handleImageUpdate)
 userRouter.get("/user/view_profile",verify_token,viewProfile)
 userRouter.post('/user/athenticate',verify_token,chat )
