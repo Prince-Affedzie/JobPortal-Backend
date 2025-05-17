@@ -34,7 +34,8 @@ const miniTaskSchema = new Schema({
         { type: mongoose.Schema.Types.ObjectId, ref: "User", default:[] }
        ], // Users who applied
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // Assigned worker
-    status: { type: String, enum: ["Open", "In-progress", "Completed", "Closed","Assigned"], default: "Open" },
+    assignmentAccepted: { type: Boolean, default: false },
+    status: { type: String, enum: ["Open", "In-progress","Review","Rejected","Completed", "Closed","Assigned"], default: "Open" },
     verificationRequired: { type: Boolean, default: false }, // For preventing scams
     proofOfCompletion: { type: String, default: null },
 },{timestamps:true})

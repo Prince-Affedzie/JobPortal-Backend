@@ -1,0 +1,114 @@
+// Sockets/messagingSocket.js
+const Message = require('../Models/MessageModel');
+const ConversationRoom = require('../Models/ConversationRoom');
+const onlineUsers = new Map();
+
+function socketHandler(io, socket) {
+  console.log('User connected:', socket.id);
+
+  socket.on('joinRoom', ({ roomId }) => {
+    socket.join(roomId);
+  });
+
+  socket.on('sendMessage', async (data) => {
+    try {
+      console.log(data)
+      const { senderId, roomId, text,mediaUrl, fileName,replyTo } = data;
+      const message =  new Message({
+        sender: senderId,
+        room: roomId,
+        text,
+        mediaUrl,
+        fileName,
+        replyTo
+      });
+
+      await ConversationRoom.findByIdAndUpdate(roomId, {
+        lastMessage: message.text ||  fileName || 'Media sent',
+        lastMessageAt: new Date(),
+      });
+      const savedMessage = await message.save()
+      const populatedMessage = await Message.findById(savedMessage._id).populate('sender').populate({ path: 'replyTo', populate: { path: 'sender' } });
+      io.to(roomId).emit('receiveMessage', populatedMessage);
+    } catch (error) {
+      console.error('Socket sendMessage error:', error);
+    }
+  });
+
+  socket.on('markAsSeen', async ({ messageId, userId }) => {
+    try {
+    const message = await Message.findByIdAndUpdate(
+        messageId,
+        { $addToSet: { seenBy: userId } }
+      );
+      io.to(message.room.toString()).emit('messageSeen',{messageId,userId})
+    } catch (error) {
+      console.error('Mark as seen error:', error);
+    }
+  });
+
+
+    socket.on('deleteMessage', async ({ messageId, userId }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) return;
+
+      if (message.sender.toString() !== userId) {
+        console.warn('Unauthorized delete attempt');
+        return;
+      }
+
+      message.deleted = true;
+      await message.save();
+
+      io.to(message.room.toString()).emit('messageDeleted', { messageId });
+
+    } catch (error) {
+      console.error('deleteMessage error:', error);
+    }
+  });
+  
+  // Receive typing
+  socket.on('typing', ({ roomId, userId }) => {
+    socket.to(roomId).emit('userTyping', { userId });
+  });
+
+  // Receive stop typing
+  socket.on('stopTyping', ({ roomId, userId }) => {
+    socket.to(roomId).emit('userStopTyping', { userId });
+  });
+
+
+
+  socket.on('approveMessageFile', async ({ messageId }) => {
+    try {
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { isApprovedForDownload: true },
+        { new: true }
+      );
+      io.to(updatedMessage.room.toString()).emit('fileApproved', updatedMessage);
+    } catch (error) {
+      console.error('File approval error:', error);
+    }
+  });
+
+  socket.on('user-online', (userId) => {
+    onlineUsers.set(userId, socket.id);
+    io.emit('update-online-users', Array.from(onlineUsers.keys()));
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+
+     for (let [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        onlineUsers.delete(userId);
+        break;
+      }
+    }
+    io.emit('update-online-users', Array.from(onlineUsers.keys()));
+  });
+}
+
+module.exports = { socketHandler };

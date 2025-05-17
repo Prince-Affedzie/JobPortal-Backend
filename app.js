@@ -8,20 +8,22 @@ const {Server} = require('socket.io')
 const http = require('http')
 const {JobModel} = require('./Models/JobsModel')
 const { UserModel } = require( "./Models/UserModel")
+const {MiniTask} =require("./Models/MiniTaskModel")
 
 const {userRouter} = require("./Routes/UserRoutes")
 const {employerRoute} = require("./Routes/EmpoyerRoutes")
 const {adminRouter} = require('./Routes/AdminRoute')
 const {seekRouter} = require("./Routes/JobSeekerRoutes")
+const {submissionRoute} = require("./Routes/WorkSubmissionRoute")
+const {chatMessagingRoute} =require('./Routes/MessageChatRoute')
 const {authenticateSocket} = require('./MiddleWare/VerifyToken')
 const jobController = require('./Controllers/JobsControllerJobseekers')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
+const WorkSubmissionController  = require("./Controllers/WorkSubmissionController")
+const {socketHandler} = require('./Utils/messagingSocketHandler')
 
  
-  
-  // Call the migration function during startup
-
-
+ 
 
 const app = express()
 app.use(CookieParser())
@@ -70,6 +72,7 @@ io.on('connection',(socket)=>{
     const userId = socket.user.id
     console.log('Someone joined the connection')
     socket.join(userId)
+    socketHandler(io,socket)
 
     socket.on('disconnect',()=>{
         console.log("User Disconnected")
@@ -81,9 +84,13 @@ app.use("/api",userRouter)
 app.use("/api",employerRoute)
 app.use("/api",seekRouter)
 app.use("/api",adminRouter)
+app.use("/api",submissionRoute)
+app.use("/api",chatMessagingRoute)
 
 app.options('*', cors());
 
 jobController.setSocketIO(io)
 jobControllerEmp.setSocketInstance(io)
+WorkSubmissionController.setSocketIO(io)
+
 

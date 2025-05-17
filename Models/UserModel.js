@@ -67,6 +67,13 @@ const userSchema = new Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"JOb"
     }],
+    appliedMiniTasks:[
+             {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:'MiniTask'
+
+             }
+    ],
     profileCompleted: {
         type: Boolean,
         default: false

@@ -7,6 +7,7 @@ const  cloudinary =require('../Utils/Cloudinary')
 const io = require('../app')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
+const ConversationRoom = require('../Models/ConversationRoom');
 
 
 
@@ -264,12 +265,9 @@ const postMiniTask = async(req,res)=>{
 const assignMiniTask =async(req,res)=>{
     try{
         const {taskId,applicantId} =req.params
-        console.log(req.params)
-        console.log(taskId)
-        console.log(applicantId)
         const miniTask = await MiniTask.findById(taskId)
-        if(!miniTask){
-            return res.status(404).json({message:"Task not Found"})
+        if(!miniTask || miniTask.status === "In-progress" || miniTask.status === "Completed"){
+            return res.status(404).json({message:"Can not assign Task."})
         }
         miniTask.assignedTo = applicantId
         miniTask.status = "Assigned"
@@ -323,7 +321,7 @@ const getMiniTasks = async(req,res)=>{
 
         }
         console.log(query)
-        const miniTasks = await MiniTask.find(query).sort({createdAt:-1}).populate("employer","name phone")
+        const miniTasks = await MiniTask.find(query).sort({createdAt:-1}).populate("employer","name phone isVerified")
         res.status(200).json(miniTasks)
 
     }catch(err){
@@ -338,13 +336,17 @@ const applyToMiniTask = async(req,res)=>{
         const {id} =req.user
         const {Id} =req.params
         const miniTask = await MiniTask.findById(Id).populate('employer _id')
-        if(!miniTask){
+        const user = await UserModel.findById(id)
+        if(!miniTask || !user){
             return res.status(404).json({message:"Job not Found"})
         }
         if(!miniTask.applicants.includes(id)){
-            miniTask.applicants.push(id)
-            await miniTask.save()
-
+        
+        
+        miniTask.applicants.push(id)
+        user.appliedMiniTasks.push(miniTask._id)
+        await miniTask.save()
+        await user.save()
          const notification  = new NotificationModel({
          user: miniTask.employer._id,
          title:"Mini Task Application",
@@ -371,6 +373,64 @@ const applyToMiniTask = async(req,res)=>{
     }catch(err){
         console.log(err)
         res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const acceptMiniTaskAssignment = async(req,res)=>{
+    try{
+        const {Id} = req.params
+        const {id} = req.user
+        const user = await UserModel.findById(id)
+        const task = await MiniTask.findById(Id)
+        if(!task || ! user){
+             return res.status(400).json({message:"Task not Found."})
+        }
+        
+        if(id !== task.assignedTo.toString()){
+            return res.status(400).json({message:"Task Hasn't been assigned to you yet"})
+        }
+        task.assignmentAccepted = true
+        task.status = "In-progress"
+        await task.save()
+        
+
+        let room = await ConversationRoom.findOne({
+              participants: { $all: [id, task.employer], $size: 2 },
+               job: task._id || null
+             
+            }).populate('participants');
+        
+            if (!room) {
+              room = await ConversationRoom.create({
+                participants: [id, task.employer],
+                job: task._id  || null,
+              });
+            }
+
+         const notification  = new NotificationModel({
+         user: task.employer._id,
+         title:"Mini Task Acceptance",
+         message: `${user.name} has accepted the Mini Task you assigned to `
+         })
+
+         await notification.save()
+         await  room.save()
+         
+
+         if(socketIO){
+               
+                socketIO.to(task.employer._id.toString()).emit('notification',notification)
+                console.log(`Notification sent to ${task.employer._id}`);
+               
+            }else {
+            console.warn("SocketIO is not initialized!");
+        }
+
+        res.status(200).json({message:'Task Accepted Successfully'})
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:'Internal Server Error'})
     }
 }
 
@@ -442,12 +502,35 @@ const deleteMiniTask = async(req,res)=>{
 const yourAppliedMiniTasks = async(req,res)=>{
     try{
         const {id} = req.user
-        const tasks = await MiniTask.find({applicants:{$in:[id]}}).populate("employer").sort({createdAt:-1})
-        res.status(200).json(tasks)
+        const userTasks = await UserModel.findById(id).populate({
+            path:'appliedMiniTasks',
+            populate:{
+                path:'employer',
+                select:'name phone profileImage'
+            }
+
+        })
+       //const tasks = await MiniTask.find({applicants:{$in:[id]}}).populate("employer").sort({createdAt:-1})
+        res.status(200).json(userTasks.appliedMiniTasks.reverse())
 
     }catch(err){
         console.log(err)
         res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const removeAppliedMiniTasksFromDashboard = async(req,res)=>{
+    try{
+        const {Ids} = req.body
+        const {id} = req.user
+        console.log(req.body)
+        const user = await UserModel.findById(id)
+       user.appliedMiniTasks = user.appliedMiniTasks.filter((taskId)=>!Ids.includes(taskId.toString()))
+       await user.save()
+       res.status(200).json({message:"Tasks Removed Successfully"})
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:" Internal Server Error"})
     }
 }
 const viewMiniTaskInfo = async(req,res)=>{
@@ -466,6 +549,6 @@ const viewMiniTaskInfo = async(req,res)=>{
 }
 
 
-module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,
-    jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks,applyToMiniTask,
+module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,
+    jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks,applyToMiniTask,removeAppliedMiniTasksFromDashboard,
     getRecentJobApplications,getCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo}
