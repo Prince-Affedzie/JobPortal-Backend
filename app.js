@@ -9,6 +9,8 @@ const http = require('http')
 const {JobModel} = require('./Models/JobsModel')
 const { UserModel } = require( "./Models/UserModel")
 const {MiniTask} =require("./Models/MiniTaskModel")
+const ConversationRoom = require('./Models/ConversationRoom');
+
 
 const {userRouter} = require("./Routes/UserRoutes")
 const {employerRoute} = require("./Routes/EmpoyerRoutes")
@@ -21,6 +23,7 @@ const jobController = require('./Controllers/JobsControllerJobseekers')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
 const WorkSubmissionController  = require("./Controllers/WorkSubmissionController")
 const {socketHandler} = require('./Utils/messagingSocketHandler')
+
 
  
  

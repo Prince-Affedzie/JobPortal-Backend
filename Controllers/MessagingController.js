@@ -175,7 +175,7 @@ const markAsRead = async (req, res) => {
 const fetchRooms = async(req,res)=>{
   try{
     const {id} = req.user
-    const rooms = await ConversationRoom.find({ participants:{$in:id}}).populate('participants','name profileImage').populate('job','title').sort({createdAt:-1})
+    const rooms = await ConversationRoom.find({ participants:{$in:id}}).populate('participants','name profileImage').populate('job','title').sort({lastMessageAt:-1})
     res.status(200).json(rooms)
 
   }catch(err){

@@ -22,12 +22,27 @@ function socketHandler(io, socket) {
         fileName,
         replyTo
       });
+       const savedMessage = await message.save()
 
-      await ConversationRoom.findByIdAndUpdate(roomId, {
-        lastMessage: message.text ||  fileName || 'Media sent',
-        lastMessageAt: new Date(),
-      });
-      const savedMessage = await message.save()
+
+      const room = await ConversationRoom.findById(roomId);
+
+    // Update lastMessage and increment unreadCounts
+      const updatedCounts = new Map(room.unreadCounts || []);
+      for (let participant of room.participants) {
+      const userId = participant.toString();
+      if (userId !== senderId) {
+        const current = updatedCounts.get(userId) || 0;
+        updatedCounts.set(userId, current + 1);
+      }
+    }
+
+     room.lastMessage = message.text || fileName || 'Media sent';
+     room.lastMessageAt = new Date();
+     room.unreadCounts = updatedCounts;
+
+      await room.save();
+     
       const populatedMessage = await Message.findById(savedMessage._id).populate('sender').populate({ path: 'replyTo', populate: { path: 'sender' } });
       io.to(roomId).emit('receiveMessage', populatedMessage);
     } catch (error) {
@@ -41,7 +56,16 @@ function socketHandler(io, socket) {
         messageId,
         { $addToSet: { seenBy: userId } }
       );
+
+    const room = await ConversationRoom.findById(message.room);
+
+    if (room) {
+      room.unreadCounts.set(userId, 0);
+      await room.save();
+    }
+
       io.to(message.room.toString()).emit('messageSeen',{messageId,userId})
+      
     } catch (error) {
       console.error('Mark as seen error:', error);
     }

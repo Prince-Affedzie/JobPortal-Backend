@@ -27,10 +27,12 @@ const ConversationRoomSchema = new mongoose.Schema({
   lastMessageAt: {
     type: Date,
   },
-  unreadCount:{
-    type: Number,
-    default:0
-  }
+  unreadCounts: {
+  type: Map,
+  of: Number,
+  default: {}
+}
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('ConversationRoom', ConversationRoomSchema);

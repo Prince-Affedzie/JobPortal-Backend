@@ -450,6 +450,60 @@ const acceptMiniTaskAssignment = async(req,res)=>{
     }
 }
 
+
+const rejectMiniTaskAssignment = async(req,res)=>{
+    try{
+        const {Id} = req.params
+        const {id} = req.user
+        const user = await UserModel.findById(id)
+        const task = await MiniTask.findById(Id)
+        if(!task || ! user){
+             return res.status(400).json({message:"Task not Found."})
+        }
+        
+        if(id !== task.assignedTo.toString()){
+            return res.status(400).json({message:"Task Hasn't been assigned to you yet"})
+        }
+        task.assignedTo = null
+        task.status = "Open"
+        await task.save()
+        
+
+        let room = await ConversationRoom.findOne({
+              participants: { $all: [id, task.employer], $size: 2 },
+               job: task._id || null
+             
+            }).populate('participants');
+        
+        
+
+         const notification  = new NotificationModel({
+         user: task.employer._id,
+         title:"Mini Task Rejection",
+         message: `${user.name} has rejected the Mini Task you assigned to `
+         })
+
+         await notification.save()
+         await  room.deleteOne()
+         
+
+         if(socketIO){
+               
+                socketIO.to(task.employer._id.toString()).emit('notification',notification)
+                console.log(`Notification sent to ${task.employer._id}`);
+               
+            }else {
+            console.warn("SocketIO is not initialized!");
+        }
+
+        res.status(200).json({message:'Task Rejected Successfully'})
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:'Internal Server Error'})
+    }
+}
+
 const getRecentJobApplications  =async(req,res)=>{
     try{
         const {id} =req.user
@@ -565,6 +619,6 @@ const viewMiniTaskInfo = async(req,res)=>{
 }
 
 
-module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,
+module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,
     jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks,applyToMiniTask,removeAppliedMiniTasksFromDashboard,
     getRecentJobApplications,getCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo}
