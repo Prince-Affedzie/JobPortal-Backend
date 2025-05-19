@@ -264,6 +264,7 @@ const postMiniTask = async(req,res)=>{
 
 const assignMiniTask =async(req,res)=>{
     try{
+        const {id} = req.user
         const {taskId,applicantId} =req.params
         const miniTask = await MiniTask.findById(taskId)
         if(!miniTask || miniTask.status === "In-progress" || miniTask.status === "Completed"){
@@ -271,6 +272,20 @@ const assignMiniTask =async(req,res)=>{
         }
         miniTask.assignedTo = applicantId
         miniTask.status = "Assigned"
+
+         let room = await ConversationRoom.findOne({
+              participants: { $all: [id, applicantId], $size: 2 },
+               job: miniTask._id || null
+             
+            }).populate('participants');
+        
+            if (!room) {
+              room = await ConversationRoom.create({
+                participants: [id,applicantId],
+                job:  miniTask._id  || null,
+              });
+            }
+
 
         const notification = new NotificationModel({
             user:applicantId,
@@ -286,6 +301,7 @@ const assignMiniTask =async(req,res)=>{
         }
         await notification.save()
         await miniTask.save()
+        await room.save()
         res.status(200).json({message:"Task Assigned Successfully"})
     }catch(err){
         console.log(err)
