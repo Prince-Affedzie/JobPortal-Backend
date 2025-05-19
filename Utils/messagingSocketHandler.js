@@ -12,7 +12,7 @@ function socketHandler(io, socket) {
 
   socket.on('sendMessage', async (data) => {
     try {
-      console.log(data)
+     
       const { senderId, roomId, text,mediaUrl, fileName,replyTo } = data;
       const message =  new Message({
         sender: senderId,
@@ -25,12 +25,12 @@ function socketHandler(io, socket) {
        const savedMessage = await message.save()
 
 
-      const room = await ConversationRoom.findById(roomId);
+      const room = await ConversationRoom.findById(roomId).populate('participants','name profileImage').populate('job','title');
 
     // Update lastMessage and increment unreadCounts
       const updatedCounts = new Map(room.unreadCounts || []);
       for (let participant of room.participants) {
-      const userId = participant.toString();
+      const userId = participant._id.toString();
       if (userId !== senderId) {
         const current = updatedCounts.get(userId) || 0;
         updatedCounts.set(userId, current + 1);
@@ -45,6 +45,7 @@ function socketHandler(io, socket) {
      
       const populatedMessage = await Message.findById(savedMessage._id).populate('sender').populate({ path: 'replyTo', populate: { path: 'sender' } });
       io.to(roomId).emit('receiveMessage', populatedMessage);
+      io.emit('updatedRoom',room)
     } catch (error) {
       console.error('Socket sendMessage error:', error);
     }
