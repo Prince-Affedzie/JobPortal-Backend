@@ -23,7 +23,7 @@ const getUploadURL = async (key, contentType) => {
 };
 
 // Generate signed preview/download URL
-const getPreviewURL = async (key, allowDownload = false) => {
+const getPreviewURL = async (key, allowDownload) => {
   const command = new GetObjectCommand({
     Bucket: process.env.AWS_S3_BUCKET,
     Key: key,

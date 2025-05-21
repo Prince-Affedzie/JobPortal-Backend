@@ -34,11 +34,15 @@ const generateUploadURL = async (req, res) => {
 const generatePreviewURL = async (req, res) => {
   try {
      
-    const { fileKey, allowDownload } = req.query;
-
-    console.log(fileKey)
+    const { fileKey,selectedSubmission } = req.query;
+    
+    let previewURL
+    if(selectedSubmission === 'approved'){
+           previewURL = await getPreviewURL(fileKey,allowDownload=true);
+    }else{
+         previewURL = await getPreviewURL(fileKey,allowDownload=false);
+    }
    
-    const previewURL = await getPreviewURL(fileKey);
     console.log(previewURL)
     res.status(200).json({ previewURL });
   } catch (err) {
