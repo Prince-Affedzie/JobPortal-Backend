@@ -4,7 +4,10 @@ const workSubmissionSchema = new mongoose.Schema({
   taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'MiniTask', required: true },
   freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  files: [String],
+  files: [{
+    fileKey: String
+  }
+],
   message: {
     type: String,
    

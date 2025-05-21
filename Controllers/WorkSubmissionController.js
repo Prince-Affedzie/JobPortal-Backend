@@ -5,6 +5,7 @@ const  cloudinary =require('../Utils/Cloudinary')
 const io = require('../app')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
+const { getUploadURL, getPreviewURL } = require('../Utils/s3');
 
 
 let socketIO = null;
@@ -14,62 +15,69 @@ function setSocketIO(ioInstance) {
     socketIO = ioInstance;
 }
 
+const generateUploadURL = async (req, res) => {
+  try {
+    const { taskId, filename, contentType } = req.body;
+    const {id} = req.user
+    const fileKey = `submissions/${taskId}/${id}/${Date.now()}-${filename}`;
 
-const submitWork = async(req,res)=>{
-    try{
-        const {taskId} = req.params
-        const {id} = req.user
-        const user = await UserModel.findById(id)
-        const task = await MiniTask.findById(taskId)
-        console.log(task)
-        console.log(id)
-        if(!task || !user || task.assignedTo.toString() !== id){
-            return res.status(400).json({message:"Task Not Found"})
-        }
-        const {message} = req.body
+    const uploadURL = await getUploadURL(fileKey,contentType);
+    console.log(uploadURL, fileKey)
+    res.status(200).json({ uploadURL, fileKey });
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({ error: 'Failed to generate upload URL', details: err });
+  }
+};
 
-        const submission  = new WorkSubmissionModel({
-            taskId :taskId,
-            freelancerId:id,
-            clientId: task.employer,
-            message:message,
 
-        })
-        if (req.files && req.files.length > 0) {
-        const uploadedFiles = await Promise.all(
-         req.files.map((file) =>
-        new Promise((resolve, reject) => {
-         const stream = uploader.upload_stream(
-          {
-            folder: 'work-submissions',
-            resource_type: 'raw',
-            public_id: file.originalname.split('.')[0],
-            format: file.originalname.split('.').pop(),
-            use_filename: true,
-            unique_filename: false,
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
+const generatePreviewURL = async (req, res) => {
+  try {
+     
+    const { fileKey, allowDownload } = req.query;
 
-        streamifier.createReadStream(file.buffer).pipe(stream);
-       })
-      )
-    );
+    console.log(fileKey)
+   
+    const previewURL = await getPreviewURL(fileKey);
+    console.log(previewURL)
+    res.status(200).json({ previewURL });
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({ error: 'Failed to generate preview URL', details: err });
+  }
+};
 
-     submission.files = uploadedFiles.map(file => file.secure_url);
-   }
 
-    await submission.save()
-    res.status(200).json({message:"Submission Sent Successfully"})
+const submitWork = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { id } = req.user;
+    const user = await UserModel.findById(id);
+    const task = await MiniTask.findById(taskId);
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message:"Internal Server Error"})
+    if (!task || !user || task.assignedTo.toString() !== id) {
+      return res.status(400).json({ message: "Task Not Found or Unauthorized" });
     }
-}
+     console.log(req.body)
+    const { message, fileKeys } = req.body; // fileKeys = array of S3 keys like ['submissions/task123/user456/file.pdf']
+
+    const submission = new WorkSubmissionModel({
+      taskId,
+      freelancerId: id,
+      clientId: task.employer,
+      message,
+      files: fileKeys || [], // Save the keys
+    });
+
+    await submission.save();
+    res.status(200).json({ message: "Submission Sent Successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 const viewSubmissions = async(req,res)=>{
     try{
@@ -77,7 +85,7 @@ const viewSubmissions = async(req,res)=>{
         const {id} = req.user
          
         const task = await MiniTask.findById(taskId)
-        const submission = await WorkSubmissionModel.find({taskId:task._id}).populate('freelancerId')
+        const submission = await WorkSubmissionModel.find({taskId:task._id}).populate('freelancerId').populate('taskId')
         if(!task || task.employer.toString() !== id ){
             return res.status(403).json({message:"You're not allowed to view this submission"})
         }
@@ -160,4 +168,5 @@ const freelancerDeleteSubmission =async(req,res)=>{
 }
 
 
-module.exports = {submitWork,viewSubmissions,reviewSubmission,getMySubmissions,freelancerDeleteSubmission,setSocketIO}
+module.exports = {submitWork,viewSubmissions,reviewSubmission,getMySubmissions,
+    freelancerDeleteSubmission,setSocketIO,generateUploadURL,generatePreviewURL}
