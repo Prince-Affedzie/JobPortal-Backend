@@ -5,38 +5,24 @@ const {UserModel} = require('../Models/UserModel');
 const  cloudinary =require('../Utils/Cloudinary')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
+const { getUploadURL, getPreviewURL, getPublicURL } = require('../Utils/s3')
 
 const handleChatFileUpload = async(req,res)=>{
   try{
-
+    const {id} = req.user
   if(req.file){
-     const sentFile = await new Promise((resolve, reject) => {
-    const stream = uploader.upload_stream(
-       {
-        folder: 'Chat Files',
-        resource_type: 'raw',
-        public_id: req.file.originalname.split('.')[0], // removes extension
-        format: req.file.originalname.split('.').pop(), // adds extension
-        use_filename: true,
-        unique_filename: false,
-          },
-          (error, result) => {
-          if (error) reject(error);
-           else resolve(result);
-           }
-           );
-                
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-          });
-                
-                      
-    const fileUrl = sentFile.secure_url;
-    res.status(200).json(fileUrl)
+   
+    const fileKey = `chatfiles/${id}/${Date.now()}-${req.file.originalname}`;
+    const contentType = req.file.mimetype
+    const fileUrl = await getUploadURL(fileKey,contentType)
+    const publicUrl = getPublicURL(fileKey);
+    console.log( publicUrl)
+    res.status(200).json({fileUrl,fileKey, publicUrl})
     }
-      }catch(err){
-      console.log(err)
-      res.status(500).json({message:"Internal Server Error"})
-          }
+    }catch(err){
+    console.log(err)
+    res.status(500).json({message:"Internal Server Error"})
+    }
 }
 // Create or get a chat room
 const createOrGetRoom = async (req, res) => {
@@ -93,7 +79,7 @@ const getMessagesByRoom = async (req, res) => {
 
 // Send a message
 const sendMessage = async (req, res) => {
-  const { senderId, roomId,  text, content, fileName } = req.body;
+  const { senderId, roomId,  text, content, mediaUrl, fileName } = req.body;
   const {id} =req.user
 
   try {
@@ -102,6 +88,7 @@ const sendMessage = async (req, res) => {
       room: roomId,
       text,
       content,
+      mediaUrl,
       fileName
     });
     if (req.body.replyTo) {

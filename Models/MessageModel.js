@@ -12,6 +12,7 @@ const MessageSchema = new mongoose.Schema({
   text: { type: String },
   mediaUrl: { type: String },
   fileName: { type: String },
+  fileKey: {type: String},
   isApprovedForDownload: { type: Boolean, default: false },
 
   // Message Schema (MongoDB - Mongoose)

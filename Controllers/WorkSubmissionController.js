@@ -37,7 +37,7 @@ const generatePreviewURL = async (req, res) => {
     const { fileKey,selectedSubmission } = req.query;
     
     let previewURL
-    if(selectedSubmission === 'approved'){
+    if(selectedSubmission && selectedSubmission === 'approved'){
            previewURL = await getPreviewURL(fileKey,allowDownload=true);
     }else{
          previewURL = await getPreviewURL(fileKey,allowDownload=false);

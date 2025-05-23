@@ -13,7 +13,7 @@ function socketHandler(io, socket) {
   socket.on('sendMessage', async (data) => {
     try {
      
-      const { senderId, roomId, text,mediaUrl, fileName,replyTo } = data;
+      const { senderId, roomId, text, mediaUrl, fileName,replyTo } = data;
       const message =  new Message({
         sender: senderId,
         room: roomId,
