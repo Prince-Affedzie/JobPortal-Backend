@@ -10,15 +10,15 @@ const { getUploadURL, getPreviewURL, getPublicURL } = require('../Utils/s3')
 const handleChatFileUpload = async(req,res)=>{
   try{
     const {id} = req.user
-  if(req.file){
-   
-    const fileKey = `chatfiles/${id}/${Date.now()}-${req.file.originalname}`;
-    const contentType = req.file.mimetype
+  
+    const {filename,contentType} = req.body
+    console.log(req.body)
+    const fileKey = `chatfiles/${id}/${Date.now()}-${filename}`;
     const fileUrl = await getUploadURL(fileKey,contentType)
     const publicUrl = getPublicURL(fileKey);
     console.log( publicUrl)
     res.status(200).json({fileUrl,fileKey, publicUrl})
-    }
+    
     }catch(err){
     console.log(err)
     res.status(500).json({message:"Internal Server Error"})
