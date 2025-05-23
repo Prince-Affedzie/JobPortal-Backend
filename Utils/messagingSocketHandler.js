@@ -51,27 +51,43 @@ function socketHandler(io, socket) {
     }
   });
 
-  socket.on('markAsSeen', async ({ messageId, userId }) => {
+ socket.on('markAsSeen', async ({ messageId, userId }) => {
     try {
-    const message = await Message.findByIdAndUpdate(
+      const message = await Message.findByIdAndUpdate(
         messageId,
-        { $addToSet: { seenBy: userId } }
+        { $addToSet: { seenBy: userId } },
+        { new: true }
       );
 
-    const room = await ConversationRoom.findById(message.room);
+      if (!message) {
+        console.error('Message not found:', messageId);
+        return;
+      }
 
-    if (room) {
-      room.unreadCounts.set(userId, 0);
-      await room.save();
-    }
+      // Get the updated room with populated data
+      const room = await ConversationRoom.findById(message.room)
+        .populate('participants', 'name profileImage')
+        .populate('job', 'title');
 
-      io.to(message.room.toString()).emit('messageSeen',{messageId,userId})
-      
+      if (room) {
+        // Reset unread count for this user
+        room.unreadCounts.set(userId, 0);
+        await room.save();
+
+        // Emit consistent data structure
+        io.to(message.room.toString()).emit('messageSeen', {
+          messageId,
+          userId,
+          roomId: room._id
+        });
+
+        // Also emit updated room to sync room list
+        io.emit('updatedRoom', room);
+      }
     } catch (error) {
       console.error('Mark as seen error:', error);
     }
   });
-
 
     socket.on('deleteMessage', async ({ messageId, userId }) => {
     try {
