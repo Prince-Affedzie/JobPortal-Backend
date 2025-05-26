@@ -35,4 +35,5 @@ const ConversationRoomSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+ConversationRoomSchema.index({participants:1})
 module.exports = mongoose.model('ConversationRoom', ConversationRoomSchema);

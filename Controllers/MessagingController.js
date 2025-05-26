@@ -67,11 +67,33 @@ const fetchRoomInfo = async(req,res)=>{
 // Get all messages in a room
 const getMessagesByRoom = async (req, res) => {
   const { roomId } = req.params;
-
+  const { limit = 20, cursor } = req.query;
+  
   try {
-    const messages = await Message.find({ room: roomId }).populate({ path: 'replyTo', populate: { path: 'sender' } }).populate('sender').sort({ createdAt: 1 });
-    console.log(messages)
-    res.status(200).json(messages) ;
+    const query = { room: roomId };
+    
+    // For pagination: fetch messages older than cursor
+    if (cursor) {
+      query.createdAt = { $lt: new Date(cursor) };
+    }
+    
+    console.log(query);
+    
+    // Always sort by createdAt descending for pagination
+    const messages = await Message.find(query)
+      .populate({ path: 'replyTo', populate: { path: 'sender' } })
+      .populate('sender')
+      .sort({ createdAt: -1 }) // Changed to -1 for descending order
+      .limit(parseInt(limit));
+    
+    // Reverse the messages to show chronological order (oldest first)
+    const orderedMessages = messages.reverse();
+    
+    res.status(200).json({
+      messages: orderedMessages,
+      nextCursor: messages.length > 0 ? messages[0].createdAt : null, // Use first message's timestamp
+      hasMore: messages.length === parseInt(limit),
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching messages', error });
   }
