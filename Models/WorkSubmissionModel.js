@@ -28,5 +28,5 @@ const workSubmissionSchema = new mongoose.Schema({
 },{timestamps:true});
 
 const WorkSubmissionModel = mongoose.model('WorkSubmission',workSubmissionSchema)
-
+workSubmissionSchema.index({taskId:1})
 module.exports = {WorkSubmissionModel}

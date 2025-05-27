@@ -104,4 +104,8 @@ const jobSchema = new schema({
 })
 
 const JobModel = mongoose.model("JOb",jobSchema)
+jobSchema.index({title:1})
+jobSchema.index({_id:1})
+jobSchema.index({employerId:1})
+jobSchema.index({ description:1, category:1, location:1})
 module.exports ={JobModel}

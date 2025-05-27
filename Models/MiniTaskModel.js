@@ -40,5 +40,8 @@ const miniTaskSchema = new Schema({
     proofOfCompletion: { type: String, default: null },
 },{timestamps:true})
 
+miniTaskSchema.index({title:1})
+miniTaskSchema.index({employer:1})
+miniTaskSchema.index({description:1})
 const MiniTask = mongoose.model("MiniTask",miniTaskSchema)
 module.exports ={MiniTask}
