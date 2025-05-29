@@ -16,7 +16,7 @@ const handleChatFileUpload = async(req,res)=>{
     const fileKey = `chatfiles/${id}/${Date.now()}-${filename}`;
     const fileUrl = await getUploadURL(fileKey,contentType)
     const publicUrl = getPublicURL(fileKey);
-    console.log( publicUrl)
+   
     res.status(200).json({fileUrl,fileKey, publicUrl})
     
     }catch(err){

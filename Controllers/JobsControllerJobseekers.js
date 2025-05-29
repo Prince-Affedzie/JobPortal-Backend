@@ -8,6 +8,7 @@ const io = require('../app')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
 const ConversationRoom = require('../Models/ConversationRoom');
+const { getUploadURL, getPreviewURL, getPublicURL } = require('../Utils/s3')
 //const client = require('../Utils/redisClient')
 
 
@@ -144,32 +145,16 @@ const applyToJob = async(req,res)=>{
             reviewer:job.employerId
          })
 
+         let uploadUrl
          if (req.file) {
-                  const uploadeResume = await new Promise((resolve, reject) => {
-                    const stream = uploader.upload_stream(
-                      {
-                        folder: 'resumes',
-                        resource_type: 'raw',
-                        public_id: req.file.originalname.split('.')[0], // removes extension
-                        format: req.file.originalname.split('.').pop(), // adds extension
-                        use_filename: true,
-                         unique_filename: false,
-                      },
-                      (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                      }
-                    );
-            
-                    streamifier.createReadStream(req.file.buffer).pipe(stream);
-                  });
-            
-                  
-                  application.resume = uploadeResume.secure_url;
+                   const filename  = req.file.originalname
+                   const contentType  = req.file.minetype
+                   const fileKey = `resumes/${id}/${Date.now()}-${filename}`;
+                   uploadUrl = await getUploadURL(fileKey,contentType)
+                   const publicUrl = getPublicURL(fileKey);
+                   application.resume = publicUrl;
+                 
                 }
-
-        
-        
          await UserModel.findOneAndUpdate(
             {'_id':id},
             { $push: { appliedJobs: Id } }, 
@@ -195,7 +180,7 @@ const applyToJob = async(req,res)=>{
         await application.save()
         await job.save()
         await notification.save()
-        res.status(200).json({message:"Job Application Successful"})
+        res.status(200).json({uploadUrl:uploadUrl})
              
       
     }catch(err){
