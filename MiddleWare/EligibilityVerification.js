@@ -39,7 +39,7 @@ const verifyAdminRoute = async(req,res,next)=>{
     try{
         const {id} = req.user
         const user = await UserModel.findById(id)
-        if(!user || user.role !== 'admin'){
+        if(!user || user.role !=='admin'){
             return res.status(404).json({message:'UnAuthorised Access'})
         }
         next()
