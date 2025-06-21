@@ -34,7 +34,7 @@ const jobApplicationSchema = new schema({
     },
     status:{
         type:String,
-        enum:["Pending","Accepted","Rejected","Completed","Reviewing","Shortlisted","Offered",'Interview'],
+        enum:["Pending","Accepted","Rejected","Completed","Reviewing","Shortlisted","Offered",'Interviewing'],
         default:"Pending"
     }
 },{timestamps:true})

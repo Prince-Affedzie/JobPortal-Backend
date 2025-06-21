@@ -296,56 +296,50 @@ const modifyApplication =async(req,res)=>{
  let notification = null 
 
     try{
-        const {Id} = req.params
-        const status = req.body
        
-        const application = await ApplicationModel.findById(Id).populate({
-            path:"job",
-            select:'title'
-        })
+        const { applicants,status} = req.body
+        const userIds = applicants.map(app => app.userId);
+        const applicationIds = applicants.map(app => app.applicationId);
        
-        if(!application){
-            return res.status(404).json({message:"Application not Found"})
+
+        if (! applicationIds || !Array.isArray( applicationIds) || applicationIds.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty 'Ids' array provided." });
         }
-
-       
-        if(req.body.status === "Shortlisted"){
-
-            notification = new NotificationModel({
-                user:application.user,
-                message:`Congratulations! You've been shortlisted For this Job: "${application.job.title}". Please contact the employer for more details.`,
-                title:"Application Short Listing"
-            })
-
-        }else if(req.body.status === "Rejected"){
-            notification = new NotificationModel({
-                user:application.user,
-                message:`Sorry! You're application For this Job Has Been Rejected: "${application.job.title}". `,
-                title:"Application REejection"
-            })
-        }else if(req.body.status === "Interview"){
-            notification = new NotificationModel({
-                user:application.user,
-                message:`Congratulations! You've been invited to an Interview For this Job: "${application.job.title}". Please contact the employer for more details.`,
-                title:"Invite For An Interview"
-            })
+        if (!status) {
+            return res.status(400).json({ message: "'status' is required." });
         }
-        
-        if (notification){
+       
+         await ApplicationModel.updateMany({_id: {$in:  applicationIds}},{$set :{status:status}})
+         const application = await ApplicationModel.findOne({ _id:  applicationIds[0] })
+        .populate({
+            path: 'job',
+            select: 'title'
+        }).lean();
 
-            await notification.save()
-            if(socketIo){
-                console.log("I'm alive")
-            
-                socketIo.to(application.user.toString()).emit('notification',notification)
-            }else {
-                console.warn("SocketIO is not initialized!");
+        if (!application || !application.job) {
+            console.warn("Could not retrieve sample application or job details for notifications.");
+            return res.status(200).json({ message: "Applications modified successfully, but failed to generate notifications." });
+        }
+        const jobTitle = application.job.title
+         const notificationsToCreate = userIds.map(id => ({
+            user: id, 
+            message: `Hi, your application status for this job "${jobTitle}" has been updated. Current Status: ${status}. Please contact the employer for any queries.`,
+            title: "Application Short Listing"
+        }));
+
+        const createdNotifications = await NotificationModel.insertMany(notificationsToCreate);
+        console.log(`Created ${createdNotifications.length} notifications.`);
+
+         if (socketIo) {
+            for (const notification of createdNotifications) {
+                // Ensure notification.user is a string for socket.io room
+                socketIo.to(notification.user.toString()).emit('notification', notification);
+                console.log(`Emitted notification to user: ${notification.user}`);
             }
-
+        } else {
+            console.warn("SocketIO is not initialized! Notifications will not be real-time.");
         }
-        Object.assign(application,status)
-        await application.save()
-        res.status(200).json({message:"Application Modified Successfully"})
+        res.status(200).json({message:"Application Modified Successfully and notification sent."})
 
     }catch(err){
         console.log(err)
@@ -405,8 +399,8 @@ const interviewController = async(req,res)=>{
 const createInterviewInvite = async(req,res)=>{
     try{
         const {id} = req.user
-        console.log(req.body)
-        const {invitationsTo,interviewDate,interviewTime,location,jobId} = req.body
+        
+        const {invitationsTo,applications,interviewDate,interviewTime,location,jobId} = req.body
         const employer = await EmployerProfile.findOne({userId:id})
         const job  = await JobModel.findById(jobId)
         if(!employer || !job){
@@ -416,7 +410,7 @@ const createInterviewInvite = async(req,res)=>{
             invitationsTo.map((id)=>UserModel.findById(id))
         )
        
-        console.log(invitedApplicants)
+       
         
         let invitedApplicantsEmail = invitedApplicants
             .filter(app =>app && app.email)
@@ -453,6 +447,8 @@ const createInterviewInvite = async(req,res)=>{
            `;
         
         sendInterviewInviteEmail(employer,invitedApplicantsEmail,message)
+        await ApplicationModel.updateMany({_id: {$in:  applications}},{$set :{status:"Interviewing"}})
+
 
         for await (const app of  invitedApplicants) {
             notification = new NotificationModel({
