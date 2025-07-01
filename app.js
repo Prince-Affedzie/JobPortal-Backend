@@ -23,6 +23,7 @@ const {authenticateSocket} = require('./MiddleWare/VerifyToken')
 const jobController = require('./Controllers/JobsControllerJobseekers')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
 const WorkSubmissionController  = require("./Controllers/WorkSubmissionController")
+const disputeController = require("./Controllers/DisputeController")
 const {socketHandler} = require('./Utils/messagingSocketHandler')
 
 
@@ -90,10 +91,12 @@ app.use("/api",seekRouter)
 app.use("/api",adminRouter)
 app.use("/api",submissionRoute)
 app.use("/api",chatMessagingRoute)
+app.use("/api",disputeRouter)
 
 app.options('*', cors());
 
 jobController.setSocketIO(io)
+disputeController.setSocketIO(io)
 jobControllerEmp.setSocketInstance(io)
 WorkSubmissionController.setSocketIO(io)
 
