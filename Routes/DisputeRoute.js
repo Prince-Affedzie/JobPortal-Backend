@@ -9,11 +9,11 @@ const {verifyAdminRoute} = require('../MiddleWare/EligibilityVerification')
 disputeRouter.post('/create_dispute',verify_token, createDispute);
 
 
-disputeRouter.get('/admin/get_disputes',verify_token,verifyAdminRoute,getAllDisputes);
+disputeRouter.get('/admin/get_disputes',verify_token,getAllDisputes);
 
-disputeRouter.get('/get_disputes/:Id', verify_token,verifyAdminRoute, getDispute);
+disputeRouter.get('/get_disputes/:Id', verify_token,getDispute);
 
 
-disputeRouter.put('/admin/disputes/:disputeId/resolve',  verify_token, verifyAdminRoute, resolveDispute);
+disputeRouter.put('/admin/disputes/:disputeId/resolve',  verify_token,  resolveDispute);
 
 module.exports =  {disputeRouter};
