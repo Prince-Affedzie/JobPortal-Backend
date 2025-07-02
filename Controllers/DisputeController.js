@@ -50,11 +50,14 @@ const createDispute = async (req, res) => {
 
 // Get all disputes for admin
 const getAllDisputes = async (req, res) => {
+  console.log("Executing")
   try {
     const disputes = await Dispute.find()
       .populate('raisedBy against submissionId taskId resolvedBy');
     res.status(200).json(disputes);
+    console.log(disputes)
   } catch (err) {
+    console.log(err)
     res.status(500).json({ message: 'Failed to fetch disputes', error: err });
   }
 };
