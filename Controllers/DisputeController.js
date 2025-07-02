@@ -82,10 +82,11 @@ const resolveDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
     const { resolutionNotes, newStatus } = req.body;
+    console.log(req.body)
     const adminId = req.user.id;
 
     const updated = await Dispute.findByIdAndUpdate(disputeId, {
-      status: newStatus,
+      status: newStatus || updated.status,
       resolutionNotes,
       resolvedBy: adminId,
       updatedAt: new Date()
@@ -93,6 +94,7 @@ const resolveDispute = async (req, res) => {
 
     res.status(200).json(updated);
   } catch (err) {
+    console.log(err)
     res.status(500).json({ message: 'Failed to resolve dispute', error: err });
   }
 };

@@ -38,7 +38,7 @@ const DisputeSchema = new mongoose.Schema({
   },
   resolvedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin'
+    ref: 'User'
   },
   createdAt: {
     type: Date,
