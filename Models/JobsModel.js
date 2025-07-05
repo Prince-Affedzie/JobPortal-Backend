@@ -54,12 +54,12 @@ const jobSchema = new schema({
     },
     paymentStyle:{
         type: String,
-        required:true,
+        
         enum:['Fixed','Range','Negotiable','Hourly','Monthly']
     },
     salary:{
         type: String,
-        required:true
+        
     },
     skillsRequired:[{
         type: String

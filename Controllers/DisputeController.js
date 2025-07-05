@@ -91,6 +91,7 @@ const resolveDispute = async (req, res) => {
       resolvedBy: adminId,
       updatedAt: new Date()
     }, { new: true });
+    
 
     res.status(200).json(updated);
   } catch (err) {

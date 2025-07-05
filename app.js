@@ -10,6 +10,7 @@ const {JobModel} = require('./Models/JobsModel')
 const { UserModel } = require( "./Models/UserModel")
 const {MiniTask} =require("./Models/MiniTaskModel")
 const ConversationRoom = require('./Models/ConversationRoom');
+const EmployerProfile = require('./Models/EmployerProfile')
 
 
 const {userRouter} = require("./Routes/UserRoutes")
@@ -26,9 +27,6 @@ const WorkSubmissionController  = require("./Controllers/WorkSubmissionControlle
 const disputeController = require("./Controllers/DisputeController")
 const {socketHandler} = require('./Utils/messagingSocketHandler')
 
-
- 
- 
 
 const app = express()
 app.use(CookieParser())
@@ -56,7 +54,7 @@ mongoose.connect(process.env.DB_URL)
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
           
-            
+           
             console.log("Listening on Port 5000")
         })
        })

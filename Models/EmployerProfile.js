@@ -17,7 +17,9 @@ const employerProfileSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   verificationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   verificationNotes: { type: String },
-  
+  postedJobs:[
+    {type: mongoose.Schema.Types.ObjectId, ref:"JOb"},    
+  ],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

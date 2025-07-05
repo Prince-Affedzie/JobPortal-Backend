@@ -34,6 +34,7 @@ const employerSignUp =async(req,res)=>{
             companyLine,
             companyLocation,
             companyWebsite,
+            postedJobs:[]
            
             
         })
@@ -74,12 +75,14 @@ const employerSignUp =async(req,res)=>{
 const addJob = async(req,res)=>{
 
     try{
+       
         const {id} = req.user
         const {title,description,category,jobType,industry,deliveryMode,company, companyEmail,
             location,paymentStyle, salary,skillsRequired,experienceLevel,responsibilities, deadLine,tags} = req.body
             console.log(req.body)
 
         const employerprofile = await EmployerProfile.findOne({userId:id})
+       
         if(!employerprofile){
            return res.status(400).json({message:"Employer Profile not Found"})
         }
@@ -105,7 +108,9 @@ const addJob = async(req,res)=>{
             companyEmail:companyEmail,
             jobTags:tags
         })
+        employerprofile.postedJobs.push(job._id)
         await job.save()
+        await employerprofile.save()
         res.status(200).json({message:"Job Added Successfully"})
 
     }catch(err){
@@ -479,7 +484,7 @@ const createInterviewInvite = async(req,res)=>{
 const getEmployerProfile = async(req,res)=>{
     try{
         const {id} = req.user
-        console.log(id)
+       
         const employerprofile = await EmployerProfile.findOne({userId:id}).populate('userId')
         if(!employerprofile){
             return res.status(400).json({message:"Account not Found"})
