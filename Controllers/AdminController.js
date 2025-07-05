@@ -370,9 +370,11 @@ const getSingleEmployerProfile = async(req,res)=>{
     try{
         const {Id} = req.params
         const employer = await EmployerProfile.findById(Id).populate('userId')
+        .populate('postedJobs')
         if(!employer){
             return res.status(400).json({message:"Employer Profile not Found"})
         }
+        console.log(employer)
         res.status(200).json(employer)
 
 

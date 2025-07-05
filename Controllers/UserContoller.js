@@ -25,7 +25,7 @@ const signUp = async(req,res)=>{
     if(!validator.isEmail(email)){
         return res.status(400).json({message:"Invalid Email"})
     }
-
+     
     const userExist = await UserModel.findOne({email})
     if(userExist){
         return res.status(400).json({mesaage: "Email had Already been taken"})
