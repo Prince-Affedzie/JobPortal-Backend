@@ -20,11 +20,6 @@ const workSubmissionSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: Date.now },
   reviewedAt: Date,
 
-   expireAt: {
-    type: Date,
-    default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-    index: { expires: 0 } // TTL index triggers auto-deletion
-  }
 },{timestamps:true});
 
 const WorkSubmissionModel = mongoose.model('WorkSubmission',workSubmissionSchema)
