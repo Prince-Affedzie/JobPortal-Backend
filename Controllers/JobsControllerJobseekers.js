@@ -517,25 +517,62 @@ const getCreatedMiniTasks = async(req,res)=>{
     }
 }
 
-const editMiniTask =async(req,res)=>{
-    try{
-        const {Id} = req.params
-        const {body} = req.body
-        console.log("Id: ",Id)
-        console.log(body)
-        const task = await MiniTask.findById(Id)
-        if(!task){
-            return res.status(400).json({message:"No Task Found"})
-        }
-        Object.assign(task,body)
-        await task.save()
-        res.status(200).json({message:"Mini Task Updated Successfully"})
+const editMiniTask = async (req, res) => {
+  try {
+    const { Id } = req.params;
+    const { body } = req.body;
+    const { status } = body;
+    const task = await MiniTask.findById(Id);
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message:"Internal Server Error"})
+    if (!task) {
+      return res.status(400).json({ message: "No Task Found" });
     }
-}
+
+   
+    if (status && status !== task.status) {
+     
+      if (status === "Closed") {
+        const canClose =
+          task.status === "Completed" ||
+          (task.status === "Open" && (!task.assignedTo || task.assignedTo === null));
+
+        if (!canClose) {
+          return res.status(400).json({
+            message:
+              "You can only close a task that is completed or open without any assigned freelancer.",
+          });
+        }
+        }
+
+      
+       else if (status === "Open") {
+        if (task.status !== "Closed") {
+          return res.status(400).json({
+            message: "You can only reopen a task that is currently closed.",
+          });
+        }
+      }
+
+      
+      else {
+        return res.status(400).json({
+          message: "Invalid status transition.",
+        });
+      }
+    }
+
+   
+    Object.assign(task, body);
+    await task.save();
+
+    return res
+      .status(200)
+      .json({ message: "Mini Task Updated Successfully", task });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 const deleteMiniTask = async(req,res)=>{
@@ -558,7 +595,7 @@ const deleteMiniTask = async(req,res)=>{
 const yourAppliedMiniTasks = async(req,res)=>{
     try{
         const {id} = req.user
-        const userTasks = await UserModel.findById(id).populate({
+        const user = await UserModel.findById(id).populate({
             path:'appliedMiniTasks',
             populate:{
                 path:'employer',
@@ -566,8 +603,10 @@ const yourAppliedMiniTasks = async(req,res)=>{
             }
 
         })
-       //const tasks = await MiniTask.find({applicants:{$in:[id]}}).populate("employer").sort({createdAt:-1})
-        res.status(200).json(userTasks.appliedMiniTasks.reverse())
+      
+       const userMiniTaskApplications = user.appliedMiniTasks.filter(
+        (task)=>task.status === 'Open' || (task.assignedTo && task.assignedTo.toString() === id.toString()))
+        res.status(200).json(userMiniTaskApplications.reverse())
 
     }catch(err){
         console.log(err)

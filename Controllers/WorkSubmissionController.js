@@ -111,9 +111,7 @@ const reviewSubmission = async(req,res)=>{
         const {id} = req.user
         const {status,feedback} = req.body
         const submission = await  WorkSubmissionModel.findById(submissionId)
-        console.log(submission.clientId.toString())
-        console.log(id)
-        console.log(submission)
+       
         if(!submission || submission.clientId.toString()!==id ){
             return res.status(403).json({message:"Not authorized to review this submission."})
         }
