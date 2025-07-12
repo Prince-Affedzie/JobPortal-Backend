@@ -28,8 +28,8 @@ const signUp = async(req,res)=>{
     if(!validator.isEmail(email)){
         return res.status(400).json({message:"Invalid Email"})
     }
-     
-    const userExist = await UserModel.findOne({email})
+    const lowerCaseEmail = email.toLowerCase()
+    const userExist = await UserModel.findOne({email: lowerCaseEmail })
     if(userExist){
         return res.status(400).json({mesaage: "Email had Already been taken"})
     }
@@ -64,7 +64,8 @@ const login = async(req,res)=>{
         if (!email || !password){
             return res.status(400).json({message:"All fields are required"})
         }
-        const findUser = await UserModel.findOne({email})
+        const lowerCaseEmail = email.toLowerCase()
+        const findUser = await UserModel.findOne({email:lowerCaseEmail})
         if(!findUser){
             return res.status(404).json({message: "Account doesn't Exist"})
         }
@@ -86,9 +87,8 @@ const login = async(req,res)=>{
 const requestPasswordReset = async(req,res)=>{
   try{
     const {email} = req.body
-    console.log(email)
-    console.log(req.body)
-    const user = await UserModel.findOne({email});
+     const lowerCaseEmail = email.toLowerCase()
+    const user = await UserModel.findOne({email:lowerCaseEmail});
     if (!user){
         return res.status(200).json({
         success: true,
