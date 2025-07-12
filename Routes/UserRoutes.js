@@ -1,13 +1,15 @@
 const express = require("express")
 const userRouter = express.Router()
 const {signUp,login,logout,editProfile,viewProfile,chat,getNotifications,createNotification, 
-    markNotificationAsRead,handleImageUpdate} = require('../Controllers/UserContoller')
+    markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword} = require('../Controllers/UserContoller')
 const {upload} = require('../Utils/Mutler')
 const {validateInput} = require('../Utils/ValidatePassword')
 const {verify_token} = require("../MiddleWare/VerifyToken")
 
 userRouter.post("/user/signup",validateInput,signUp)
 userRouter.post("/user/login",login)
+userRouter.post("/user/request-password-reset",requestPasswordReset)
+userRouter.post("/user/reset-password",verify_token,resetPassword)
 userRouter.post("/user/logout",verify_token,logout)
 userRouter.put("/user/edit_profile",verify_token,upload.fields([
   { name: 'profileImage', maxCount: 1 },

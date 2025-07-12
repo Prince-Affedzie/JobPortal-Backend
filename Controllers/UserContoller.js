@@ -7,6 +7,9 @@ const validator = require("validator")
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
+const {sendPasswordResetEmail} = require("../Utils/NodemailerConfig")
+const fs = require('fs');
+const path = require('path');
 const io = require('../app')
 
 const client = new StreamChat('c9tbyybnmgwt','a3mkxyqbncbd3q8uq3n6gvxjpwzrcb6pwrdp65tnuxvn75angqecgtck8wzph7wg');
@@ -78,6 +81,62 @@ const login = async(req,res)=>{
         return res.status(500).json({message: "Internal Server Error"})
     }
 
+}
+
+const requestPasswordReset = async(req,res)=>{
+  try{
+    const {email} = req.body
+    console.log(email)
+    console.log(req.body)
+    const user = await UserModel.findOne({email});
+    if (!user){
+        return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email, a reset link has been sent'
+      })
+    }
+    const token = jwt.sign({id:user._id,role:user.role},process.env.token, {expiresIn:"1h"})
+    res.cookie("token",token,{httpOnly:true, sameSite:'None',secure:true})
+
+     const resetPasswordTemplate = fs.readFileSync(
+     path.join(__dirname, '../Static/templates/reset-password-email.html'),
+    'utf8'
+     );
+     const resetUrl = `${process.env.FRONTEND_URL}/reset-password`;
+     const emailHtml = resetPasswordTemplate.replace(/{{resetUrl}}/g, resetUrl);
+
+     await sendPasswordResetEmail(email,emailHtml )
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account exists with this email, a reset link has been sent'
+    });
+
+  }catch(err){
+    console.log(err)
+    res.status(500).json({message: "Internal Server Error"})
+  }
+}
+
+const  resetPassword = async(req,res)=>{
+  try{
+    const {password} = req.body
+    const {id} = req.user
+    const user = await UserModel.findById(id)
+    if(!user){
+      return res.status(404).json({message: "User Account Not Found"})
+    }
+    const hashedPassword = await bcrypt.hash(password,10);
+    user.password = hashedPassword;
+    await user.save()
+    res.status(200).json({
+      message: "Password Reset Has been Successful"
+    })
+
+  }catch(err){
+   console.log(err)
+   res.status(500).json({message: "Internal Server Error"})
+  }
 }
 
 const logout =async(req,res)=>{
@@ -336,5 +395,5 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUp,login,logout,editProfile,viewProfile, 
+module.exports = {signUp,login,logout,editProfile,viewProfile,  requestPasswordReset, resetPassword,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate }
