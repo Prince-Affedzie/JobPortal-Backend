@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Invitation via Workaflow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+        .platform-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255,255,255,0.2);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .content {
+            padding: 25px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+        }
+        .details {
+            background-color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .detail-item {
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #4b5563;
+            display: inline-block;
+            width: 80px;
+        }
+        .contact-info {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .contact-item {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            padding: 15px;
+            background-color: #f9fafb;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 15px 0;
+        }
+        .company-name {
+            font-weight: 600;
+            color: #1e40af;
+        }
+        .platform-name {
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="platform-badge">via Workaflow</div>
+        <h2>Interview Invitation</h2>
+    </div>
+    
+    <div class="content">
+        <p>Dear Applicant,</p>
+        
+        <p>Congratulations! <span class="company-name">{{companyName}}</span> has invited you to an interview for the position of <strong>"{{jobTitle}}"</strong> that you applied for through <span class="platform-name">Workaflow</span>.</p>
+        
+        <div class="details">
+            <div class="detail-item">
+                <span class="detail-label">Date:</span>
+                {{interviewDate}}
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Time:</span>
+                {{interviewTime}}
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Location:</span>
+                {{location}}
+            </div>
+        </div>
+        
+        <p>Please confirm your attendance at your earliest convenience. If you have any questions or need to reschedule, please contact the company directly using the information below.</p>
+        
+        <div class="contact-info">
+            <div class="contact-item"><strong>Contact Email:</strong> {{companyEmail}}</div>
+            <div class="contact-item"><strong>Contact Phone:</strong> {{companyPhone}}</div>
+        </div>
+        
+        <p>We look forward to meeting you and learning more about your qualifications.</p>
+        
+        <p>Best regards,</p>
+        <p><strong>{{companyName}} Recruitment Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This interview invitation was sent through <span class="platform-name">Workaflow</span> regarding your application with {{companyName}}.</p>
+        <p>&copy; {{currentYear}} Workaflow. All rights reserved.</p>
+    </div>
+</body>
+</html>

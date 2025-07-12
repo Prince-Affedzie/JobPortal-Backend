@@ -8,6 +8,8 @@ const {sendInterviewInviteEmail} = require('../Utils/NodemailerConfig')
 const  cloudinary =require('../Utils/Cloudinary')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
+const path = require('path')
+const fs = require("fs")
 
 
 let socketIo =null
@@ -434,24 +436,27 @@ const createInterviewInvite = async(req,res)=>{
         if(invitedApplicantsEmail.length === 0){
             return res.status(400).json({message:"Applicants List can't be empty"})
         }
-        let message = `
-           Dear Applicant,
+         const templatePath = path.join(__dirname, '../Static/templates/Invitation-email-html-template.html');
+         let htmlTemplate = fs.readFileSync(templatePath, 'utf8');
+         const formattedDate = new Date(interview.interviewDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
 
-            Congratulations! ${employer.companyName} has invited you to an interview for the position of "${job.title}" that you applied for.
+        const emailHtml = htmlTemplate
+            .replace(/{{companyName}}/g, employer.companyName)
+            .replace(/{{companyEmail}}/g,employer.companyEmail)
+            .replace(/{{companyPhone}}/g,employer.companyLine)
+            .replace(/{{jobTitle}}/g, job.title)
+            .replace(/{{interviewDate}}/g, formattedDate)
+            .replace(/{{interviewTime}}/g, interview.interviewTime)
+            .replace(/{{location}}/g, interview.location)
+            .replace(/{{currentYear}}/g, new Date().getFullYear());
 
-            Please find the interview details below:
-
-             -Date: ${new Date(interview.interviewDate).toDateString()}
-             -Time: ${interview.interviewTime}
-             -Location: ${interview.location}
-
-             We wish you the very best in your interview.
-
-            Kind regards,  
-            ${employer.companyName} Recruitment Team
-           `;
         
-        sendInterviewInviteEmail(employer,invitedApplicantsEmail,message)
+        sendInterviewInviteEmail(employer,invitedApplicantsEmail,emailHtml)
         await ApplicationModel.updateMany({_id: {$in:  applications}},{$set :{status:"Interviewing"}})
 
 

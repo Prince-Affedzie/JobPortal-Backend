@@ -10,7 +10,7 @@ const sendInterviewInviteEmail = async (sender, recipients, message) => {
       from: `${sender.companyName} <noreply@mail.workaflow.live>`, // You can replace with your verified domain sender
       to: recipients,
       subject: `${sender.companyName} Invites You for a Job Interview`,
-      text: message,
+      html: message,
     });
 
     console.log('Interview Invite Sent:', response);
