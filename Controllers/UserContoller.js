@@ -102,7 +102,7 @@ const requestPasswordReset = async(req,res)=>{
      path.join(__dirname, '../Static/templates/reset-password-email.html'),
     'utf8'
      );
-     const resetUrl = `${process.env.FRONTEND_URL}/reset-password`;
+     const resetUrl = `${process.env.Frontend_Url}/reset-password`;
      const emailHtml = resetPasswordTemplate.replace(/{{resetUrl}}/g, resetUrl);
 
      await sendPasswordResetEmail(email,emailHtml )
