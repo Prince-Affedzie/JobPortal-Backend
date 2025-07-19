@@ -2,8 +2,8 @@ const express = require("express")
 const userRouter = express.Router()
 const {signUp,login,logout,editProfile,viewProfile,chat,getNotifications,createNotification, 
     markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword} = require('../Controllers/UserContoller')
-const {upload} = require('../Utils/Mutler')
-const {validateInput} = require('../Utils/ValidatePassword')
+const {upload} = require('../Config/Mutler')
+const {validateInput} = require('../Validators/ValidatePassword')
 const {verify_token} = require("../MiddleWare/VerifyToken")
 
 userRouter.post("/user/signup",validateInput,signUp)

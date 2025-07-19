@@ -20,12 +20,13 @@ const {seekRouter} = require("./Routes/JobSeekerRoutes")
 const {submissionRoute} = require("./Routes/WorkSubmissionRoute")
 const {chatMessagingRoute} =require('./Routes/MessageChatRoute')
 const {disputeRouter} = require('./Routes/DisputeRoute')
-const {authenticateSocket} = require('./MiddleWare/VerifyToken')
+const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
 const jobController = require('./Controllers/JobsControllerJobseekers')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
 const WorkSubmissionController  = require("./Controllers/WorkSubmissionController")
 const disputeController = require("./Controllers/DisputeController")
-const {socketHandler} = require('./Utils/messagingSocketHandler')
+const {socketHandler} = require('./Services/messagingService')
+const NotificationService = require('./Services/notificationService');
 
 
 const app = express()
@@ -35,11 +36,7 @@ app.use(BodyParser.json())
 app.use(express.static("/Static"))
 app.use('/Uploads',express.static('Uploads'))
 app.set('trust proxy', 1);
-const allowedOrigins = [
-  , // use actual Vercel domain
-  'http://localhost:3000' // optional, for local dev
-  //https://job-portal-sable-five.vercel.app/
-];
+
 app.use(cors({
     origin:process.env.Frontend_Url,
     credentials: true
@@ -69,7 +66,7 @@ const io = new Server(server,{
         methods: ['GET', 'POST']
     }
 })
-io.use(authenticateSocket)
+io.use(authenticateSocketConnection)
 
 io.on('connection',(socket)=>{
     const userId = socket.user.id
@@ -82,7 +79,7 @@ io.on('connection',(socket)=>{
     })
 
 })
-
+const notificationService = new NotificationService(io);
 app.use("/api",userRouter)
 app.use("/api",employerRoute)
 app.use("/api",seekRouter)
@@ -90,6 +87,7 @@ app.use("/api",adminRouter)
 app.use("/api",submissionRoute)
 app.use("/api",chatMessagingRoute)
 app.use("/api",disputeRouter)
+app.set('notificationService', notificationService);
 
 app.options('*', cors());
 

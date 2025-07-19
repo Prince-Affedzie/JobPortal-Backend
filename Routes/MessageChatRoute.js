@@ -1,6 +1,6 @@
 const express = require("express")
 const chatMessagingRoute = express.Router()
-const {upload} = require('../Utils/Mutler')
+const {upload} = require('../Config/Mutler')
 const {verify_token} = require("../MiddleWare/VerifyToken")
 
 const { createOrGetRoom,getMessagesByRoom,sendMessage,approveMessageFile,

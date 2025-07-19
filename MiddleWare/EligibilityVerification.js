@@ -1,7 +1,7 @@
 const {UserModel} = require("../Models/UserModel")
 const EmployerProfile = require('../Models/EmployerProfile')
 
-const verifyEligibility = async(req,res,next)=>{
+const verifyJobPostingEligibility = async(req,res,next)=>{
     try{
 
         const {id,role} = req.user
@@ -20,7 +20,7 @@ const verifyEligibility = async(req,res,next)=>{
     }
 }
 
-const verifyMiniTaskPostings = async(req,res,next)=>{
+const verifyMiniTaskPostingEligibility = async(req,res,next)=>{
     try{
         const {id,role} = req.user
         const user  = await UserModel.findById(id)
@@ -35,7 +35,7 @@ const verifyMiniTaskPostings = async(req,res,next)=>{
     }
 }
 
-const verifyAdminRoute = async(req,res,next)=>{
+const verifyAdminRouteAccess = async(req,res,next)=>{
     try{
         const {id} = req.user
         const user = await UserModel.findById(id)
@@ -50,4 +50,4 @@ const verifyAdminRoute = async(req,res,next)=>{
     }
 }
 
-module.exports = {verifyEligibility,verifyMiniTaskPostings,verifyAdminRoute}
+module.exports = {verifyJobPostingEligibility,verifyMiniTaskPostingEligibility,verifyAdminRouteAccess}

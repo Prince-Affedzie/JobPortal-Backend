@@ -1,11 +1,11 @@
 const {WorkSubmissionModel} = require('../Models/WorkSubmissionModel')
 const {UserModel} = require('../Models/UserModel')
 const {MiniTask} = require('../Models/MiniTaskModel')
-const  cloudinary =require('../Utils/Cloudinary')
+const  cloudinary =require('../Config/Cloudinary')
 const io = require('../app')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
-const { getUploadURL, getPreviewURL } = require('../Utils/s3');
+const { getUploadURL, getPreviewURL } = require('../Services/aws_S3_file_Handling');
 
 
 let socketIO = null;

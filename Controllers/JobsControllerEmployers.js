@@ -4,10 +4,11 @@ const {NotificationModel} = require("../Models/NotificationModel")
 const { UserModel } = require("../Models/UserModel")
 const EmployerProfile = require( "../Models/EmployerProfile")
 const {Interview} = require('../Models/InterviewModel')
-const {sendInterviewInviteEmail} = require('../Utils/NodemailerConfig')
-const  cloudinary =require('../Utils/Cloudinary')
+const {sendInterviewInviteEmail} = require('../Services/emailService')
+const  cloudinary =require('../Config/Cloudinary')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
+const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
 const path = require('path')
 const fs = require("fs")
 
@@ -40,33 +41,19 @@ const employerSignUp =async(req,res)=>{
            
             
         })
+        let uploadUrl
         if(req.file){
-                     const uploadedbusinessdocs = await new Promise((resolve, reject) => {
-                        const stream = uploader.upload_stream(
-                        {
-                             folder: 'business docs',
-                             resource_type: 'raw',
-                             public_id: req.file.originalname.split('.')[0], // removes extension
-                             format: req.file.originalname.split('.').pop(), // adds extension
-                             use_filename: true,
-                             unique_filename: false,
-                            },
-                             (error, result) => {
-                            if (error) reject(error);
-                             else resolve(result);
-                             }
-                             );
-                                
-                             streamifier.createReadStream(req.file.buffer).pipe(stream);
-                             });
-                                
-                                      
-                             profile.businessDocs = uploadedbusinessdocs.secure_url;
+                  const filename  = req.file.originalname
+                  const contentType  = req.file.minetype
+                  const fileKey = `employersDocs/${id}/${Date.now()}-${filename}`;
+                  uploadUrl = await getUploadURL(fileKey,contentType)
+                  const publicUrl = getPublicURL(fileKey);
+                  profile.businessDocs = publicUrl;
         }
         user.phone = personalLine
         await user.save()
         await profile.save()
-        res.status(200).json({message: 'Employer Profile Successfully Created'})
+        res.status(200).json({uploadUrl: uploadUrl})
 
     }catch(err){
         console.log(err)

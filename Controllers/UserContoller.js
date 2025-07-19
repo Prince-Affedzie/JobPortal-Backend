@@ -1,13 +1,14 @@
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcryptjs")
 const  { StreamChat} = require('stream-chat')
-const  cloudinary =require('../Utils/Cloudinary')
+const  cloudinary =require('../Config/Cloudinary')
 const streamifier = require('streamifier');
 const validator = require("validator")
+const CloudinaryFileUploadService  = require('../Services/cloudinaryFileUpload')
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
-const {sendPasswordResetEmail} = require("../Utils/NodemailerConfig")
+const {sendPasswordResetEmail} = require("../Services/emailService")
 const fs = require('fs');
 const path = require('path');
 const io = require('../app')
@@ -150,8 +151,7 @@ const logout =async(req,res)=>{
 
 const editProfile = async(req,res)=>{
     try{
-         console.log(req.body)
-         console.log(req.files)
+         
         const {email,phone,skills,education,workExperience,Bio,location,} = req.body
         const {id} = req.user
         const user = await UserModel.findById(id)
@@ -161,51 +161,19 @@ const editProfile = async(req,res)=>{
         if (req.files) {
        const { profileImage, idCardImage } = req.files;
 
-  // Handle Profile Image Upload
+      // Handle Profile Image Upload
         if (profileImage && profileImage[0]) {
-          const uploadedProfile = await new Promise((resolve, reject) => {
-          const stream = uploader.upload_stream(
-         {
-           folder: 'user_profiles',
-          resource_type: 'auto',
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-
-           streamifier.createReadStream(profileImage[0].buffer).pipe(stream);
-      });
-
-         console.log("Profile Image URL:", uploadedProfile.secure_url);
-           user.profileImage = uploadedProfile.secure_url;
+          user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
     }
 
   // Handle ID Card Upload
-    if (idCardImage && idCardImage[0]) {
-       const uploadedIDCard = await new Promise((resolve, reject) => {
-       const stream = uploader.upload_stream(
-        {
-          folder: 'user_id_cards',
-          resource_type: 'auto',
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-
-      streamifier.createReadStream(idCardImage[0].buffer).pipe(stream);
-    });
-
-    console.log("ID Card Image URL:", uploadedIDCard.secure_url);
-    user.idCard = uploadedIDCard.secure_url;
-  }
+      if (idCardImage && idCardImage[0]) {
+        user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
+      }
 
   // Save the updated user
-  await user.save();
-}
+     await user.save();
+    }
 
         
         user.email = email || user.email
@@ -237,29 +205,10 @@ const handleImageUpdate = async(req,res)=>{
         console.log(req.body)
         console.log(req.file)
         if (req.file) {
-          const uploadedImage = await new Promise((resolve, reject) => {
-            const stream = uploader.upload_stream(
-              {
-                folder: 'user_profiles',
-                resource_type: 'auto',
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            );
-    
-            streamifier.createReadStream(req.file.buffer).pipe(stream);
-          });
-    
-          console.log('Uploaded image URL:', uploadedImage.secure_url);
-          user.profileImage = uploadedImage.secure_url;
+           user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(req.file.buffer);
         }
           await user.save()
           res.status(200).json({message:"Profile Updated Successfully"})
-
-      
-
     }catch(err){
         console.log(err)
     }

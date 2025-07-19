@@ -2,10 +2,10 @@
 const ConversationRoom = require('../Models/ConversationRoom');
 const Message = require('../Models/MessageModel');
 const {UserModel} = require('../Models/UserModel');
-const  cloudinary =require('../Utils/Cloudinary')
+const  cloudinary =require('../Config/Cloudinary')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
-const { getUploadURL, getPreviewURL, getPublicURL } = require('../Utils/s3')
+const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
 
 const handleChatFileUpload = async(req,res)=>{
   try{

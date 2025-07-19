@@ -3,12 +3,14 @@ const {ApplicationModel} = require("../Models/ApplicationModel")
 const {MiniTask} =require("../Models/MiniTaskModel")
 const { UserModel } = require('../Models/UserModel')
 const {NotificationModel} = require('../Models/NotificationModel')
-const  cloudinary =require('../Utils/Cloudinary')
+const  cloudinary =require('../Config/Cloudinary')
 const io = require('../app')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
 const ConversationRoom = require('../Models/ConversationRoom');
-const { getUploadURL, getPreviewURL, getPublicURL } = require('../Utils/s3')
+const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
+
+
 //const client = require('../Utils/redisClient')
 
 
@@ -125,6 +127,8 @@ const applyToJob = async(req,res)=>{
     try{
 
         const job = await JobModel.findById(Id)
+        const notificationService = req.app.get('notificationService');
+
 
         if (!job || job.status === "Closed"){
             return res.status(400).json({message:"Application Closed For this Job"})
@@ -165,21 +169,13 @@ const applyToJob = async(req,res)=>{
         job.noOfApplicants = job.noOfApplicants + 1
         job.applicantsId.push(id)
 
-        const notification = new NotificationModel({
-            user:job.employerId,
-            message:` New Pending Application Received for your job posting "${job.title}".`,
-            title:"New Job Application"
-
-        })
-        if (socketIO) {
-            socketIO.to(job.employerId.toString()).emit('notification', notification);
-            console.log(`Notification sent to ${job.employerId}`);
-        } else {
-            console.warn("SocketIO is not initialized!");
-        }
+       await notificationService.sendJobApplicationNotification({
+        employerId: job.employerId,
+        jobTitle: job.title
+        });
         await application.save()
         await job.save()
-        await notification.save()
+        
         res.status(200).json({uploadUrl:uploadUrl})
              
       
@@ -253,6 +249,8 @@ const assignMiniTask =async(req,res)=>{
         const {id} = req.user
         const {taskId,applicantId} =req.params
         const miniTask = await MiniTask.findById(taskId)
+        const notificationService = req.app.get('notificationService');
+
         if(!miniTask || miniTask.status === "In-progress" || miniTask.status === "Completed"){
             return res.status(404).json({message:"Can not assign Task."})
         }
@@ -273,19 +271,10 @@ const assignMiniTask =async(req,res)=>{
             }
 
 
-        const notification = new NotificationModel({
-            user:applicantId,
-            message:`Congratulations! You've been assigned to the mini task: "${miniTask.title}". Please contact employer for more details.`,
-            title:"Mini Task Assignment"
+        await notificationService.sendMicroJobAssignmentNotification({
+        freelancerId: applicantId,
+        jobTitle: miniTask.title})
 
-        })
-        if (socketIO) {
-            socketIO.to(applicantId.toString()).emit('notification', notification);
-            console.log(`Notification sent to ${applicantId}`);
-        } else {
-            console.warn("SocketIO is not initialized!");
-        }
-        await notification.save()
         await miniTask.save()
         await room.save()
         res.status(200).json({message:"Task Assigned Successfully"})
@@ -322,7 +311,7 @@ const getMiniTasks = async(req,res)=>{
             ]
 
         }
-        console.log(query)
+        
         const miniTasks = await MiniTask.find(query).sort({createdAt:-1}).populate("employer","name phone isVerified")
         res.status(200).json(miniTasks)
 
@@ -339,6 +328,8 @@ const applyToMiniTask = async(req,res)=>{
         const {Id} =req.params
         const miniTask = await MiniTask.findById(Id).populate('employer _id')
         const user = await UserModel.findById(id)
+        const notificationService = req.app.get('notificationService');
+
         if(!miniTask || !user){
             return res.status(404).json({message:"Job not Found"})
         }
@@ -349,24 +340,13 @@ const applyToMiniTask = async(req,res)=>{
         user.appliedMiniTasks.push(miniTask._id)
         await miniTask.save()
         await user.save()
-         const notification  = new NotificationModel({
-         user: miniTask.employer._id,
-         title:"Mini Task Application",
-         message: `You've gotten a new Application for your MiniTask with the title: ${miniTask.title} `
-         })
 
-         await notification.save()
+         await notificationService.sendMicroJobApplicationNotification({
+        clientId:  miniTask.employer._id,
+        jobTitle: miniTask.title})
 
-         if(socketIO){
-                console.log(miniTask.employer._id)
-                socketIO.to(miniTask.employer._id).emit('notification',notification)
-                console.log(`Notification sent to ${miniTask.employer._id}`);
-                console.log(`Notification sent to ${notification}`);
-            }else {
-            console.warn("SocketIO is not initialized!");
-        }
+         return res.status(200).json({message:"Application Successful"})
 
-            return res.status(200).json({message:"Application Successful"})
         }else{
             return res.status(400).json({message:"You've Already Applied to this Task"})
         }
@@ -384,6 +364,8 @@ const acceptMiniTaskAssignment = async(req,res)=>{
         const {id} = req.user
         const user = await UserModel.findById(id)
         const task = await MiniTask.findById(Id)
+        const notificationService = req.app.get('notificationService');
+
         if(!task || ! user){
              return res.status(400).json({message:"Task not Found."})
         }
@@ -409,25 +391,12 @@ const acceptMiniTaskAssignment = async(req,res)=>{
               });
             }
 
-         const notification  = new NotificationModel({
-         user: task.employer._id,
-         title:"Mini Task Acceptance",
-         message: `${user.name} has accepted the Mini Task you assigned to `
-         })
+         await notificationService.ssendMicroJobAcceptanceNotification({
+         username:user.name,
+         clientId:  task.employer._id,
+         jobTitle: task.title})
 
-         await notification.save()
          await  room.save()
-         
-
-         if(socketIO){
-               
-                socketIO.to(task.employer._id.toString()).emit('notification',notification)
-                console.log(`Notification sent to ${task.employer._id}`);
-               
-            }else {
-            console.warn("SocketIO is not initialized!");
-        }
-
         res.status(200).json({message:'Task Accepted Successfully'})
 
     }catch(err){
@@ -443,6 +412,8 @@ const rejectMiniTaskAssignment = async(req,res)=>{
         const {id} = req.user
         const user = await UserModel.findById(id)
         const task = await MiniTask.findById(Id)
+        const notificationService = req.app.get('notificationService');
+
         if(!task || ! user){
              return res.status(400).json({message:"Task not Found."})
         }
@@ -463,25 +434,13 @@ const rejectMiniTaskAssignment = async(req,res)=>{
         
         
 
-         const notification  = new NotificationModel({
-         user: task.employer._id,
-         title:"Mini Task Rejection",
-         message: `${user.name} has rejected the Mini Task you assigned to `
-         })
+        await notificationService.ssendMicroJobAcceptanceNotification({
+        username:user.name,
+        clientId:  task.employer._id,
+        jobTitle: task.title})
 
-         await notification.save()
          await  room.deleteOne()
          
-
-         if(socketIO){
-               
-                socketIO.to(task.employer._id.toString()).emit('notification',notification)
-                console.log(`Notification sent to ${task.employer._id}`);
-               
-            }else {
-            console.warn("SocketIO is not initialized!");
-        }
-
         res.status(200).json({message:'Task Rejected Successfully'})
 
     }catch(err){

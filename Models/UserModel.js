@@ -37,9 +37,10 @@ const userSchema = new Schema({
         }
     ],
     education:[{
-        degree: String,
+        certification: String,
         institution: String,
-        yearOfCompletion: Number     
+        startedOn:Date,
+        yearOfCompletion: Date,   
     }],
 
     workExperience:[{
@@ -50,6 +51,15 @@ const userSchema = new Schema({
         description: String
 
     }],
+
+    workPortfolio: [
+    {
+      title: String,
+      url: String,
+      description: String,
+    },
+  ],
+
     profileImage:{
         type:String
     },
@@ -81,18 +91,7 @@ const userSchema = new Schema({
         type: Boolean,
         default: false
     },
-    businessName:{
-        type: String,
-        default:null
-    },
-    businessRegistrationProof:{
-          type: String,
-          default:null
-    },
-    businessVerified:{
-        type: Boolean,
-        default:false
-    },
+   
     miniTaskEligible:{
         type: Boolean,
         default:false
@@ -104,7 +103,50 @@ const userSchema = new Schema({
     isVerified:{
          type:Boolean,
          default:false
+    },
+
+    vettingStatus: {
+    type: String,
+    enum: ["not_applied", "pending", "approved", "rejected"],
+    default: "not_applied",
+  },
+
+   rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+
+  numberOfRatings: {
+    type: Number,
+    default: 0,
+  },
+
+  ratingsReceived: [
+    {
+      ratedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Could be job seeker or employer
+        required: true,
+      },
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        required: true,
+      },
+      feedback: {
+        type: String,
+        default: '',
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
     }
+  ],
+
 
 },{timestamps:true})
 

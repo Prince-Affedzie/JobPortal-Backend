@@ -1,7 +1,7 @@
 const express = require('express')
 const adminRouter = express.Router()
 const {verify_token} =require('../MiddleWare/VerifyToken')
-const {verifyAdminRoute} = require('../MiddleWare/EligibilityVerification')
+const {verifyAdminRouteAccess} = require('../MiddleWare/EligibilityVerification')
 
 const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfile,adminAddUser,modifyUserInfo,
     getAllUsers,getSingleUser,removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,upDateJob,getAllEmployerProfiles,

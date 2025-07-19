@@ -1,6 +1,6 @@
 const express = require('express')
 const submissionRoute = express.Router()
-const {upload} = require('../Utils/Mutler')
+const {upload} = require('../Config/Mutler.js')
 const {verify_token}= require('../MiddleWare/VerifyToken.js')
 const  {submitWork,viewSubmissions,reviewSubmission,getMySubmissions,freelancerDeleteSubmission,
     generateUploadURL,generatePreviewURL
