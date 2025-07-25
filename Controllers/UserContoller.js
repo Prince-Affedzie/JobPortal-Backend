@@ -152,7 +152,9 @@ const logout =async(req,res)=>{
 const editProfile = async(req,res)=>{
     try{
          
-        const {email,phone,skills,education,workExperience,Bio,location,} = req.body
+        const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
+        console.log(req.body)
+        
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
@@ -162,7 +164,7 @@ const editProfile = async(req,res)=>{
        const { profileImage, idCardImage } = req.files;
 
       // Handle Profile Image Upload
-        if (profileImage && profileImage[0]) {
+      if (profileImage && profileImage[0]) {
           user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
     }
 
@@ -170,7 +172,7 @@ const editProfile = async(req,res)=>{
       if (idCardImage && idCardImage[0]) {
         user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
       }
-
+      
   // Save the updated user
      await user.save();
     }
@@ -183,6 +185,7 @@ const editProfile = async(req,res)=>{
         user.workExperience = workExperience || user.workExperience
         user.Bio = Bio || user.Bio
         user.location = location || user.location
+        user.workPortfolio = workPortfolio ||  user.workPortfolio
 
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})

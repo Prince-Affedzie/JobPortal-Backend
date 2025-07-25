@@ -2,6 +2,7 @@ const express = require("express")
 const userRouter = express.Router()
 const {signUp,login,logout,editProfile,viewProfile,chat,getNotifications,createNotification, 
     markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword} = require('../Controllers/UserContoller')
+const {generatePortfolioUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
 const {validateInput} = require('../Validators/ValidatePassword')
 const {verify_token} = require("../MiddleWare/VerifyToken")
@@ -22,6 +23,7 @@ userRouter.post('/user/athenticate',verify_token,chat )
 userRouter.post('/notifications',verify_token,createNotification)
 userRouter.get('/notifications',verify_token,getNotifications)
 userRouter.put('/mark_notifications/read',verify_token,markNotificationAsRead)
+userRouter.post('/user/upload_portfolio',verify_token,generatePortfolioUploadURL)
 
 
 module.exports = {userRouter}

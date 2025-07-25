@@ -82,6 +82,22 @@ class NotificationService {
       title: "Micro TaskRejection"
     });
   }
+
+  async sendInterviewInviteNotification({ freelancerId, jobTitle }) {
+    return this.sendNotification({
+      userId: freelancerId,
+      message: `Congratulations! You've been invited to an Interview For this Job: "${jobTitle}". Please check  your email for more details or contact the employer.`,
+      title: "Invite For An Interview"
+    });
+  }
+
+   async sendInterviewInviteCancellationNotification({ freelancerId, jobTitle }) {
+    return this.sendNotification({
+      userId: freelancerId,
+      message: `Congratulations! You've been invited to an Interview For this Job: "${jobTitle}". Please contact the employer for more details.`,
+      title: "Invite For An Interview"
+    });
+  }
 }
 
 module.exports = NotificationService;

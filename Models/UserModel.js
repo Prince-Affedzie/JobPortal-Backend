@@ -55,7 +55,8 @@ const userSchema = new Schema({
     workPortfolio: [
     {
       title: String,
-      url: String,
+      files:[{publicUrl: String, name: String}],
+      link: String,
       description: String,
     },
   ],
@@ -127,7 +128,7 @@ const userSchema = new Schema({
     {
       ratedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Could be job seeker or employer
+        ref: 'User', 
         required: true,
       },
       rating: {

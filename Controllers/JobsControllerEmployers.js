@@ -291,6 +291,7 @@ const modifyApplication =async(req,res)=>{
 
     try{
        
+       
         const { applicants,status} = req.body
         const userIds = applicants.map(app => app.userId);
         const applicationIds = applicants.map(app => app.applicationId);
@@ -346,6 +347,7 @@ const interviewController = async(req,res)=>{
     try{
         const {Id} = req.params
         const {interviewState} = req.body
+        const notificationService = req.app.get('notificationService');
        
         const application = await ApplicationModel.findById(Id).populate({
             path:"job",
@@ -357,29 +359,22 @@ const interviewController = async(req,res)=>{
         }
         application.inviteForInterview = interviewState
          if(interviewState === true){
-             notification = new NotificationModel({
-                user:application.user,
-                message:`Congratulations! You've been invited to an Interview For this Job: "${application.job.title}". Please contact the employer for more details.`,
-                title:"Invite For An Interview"
-            })
+             await notificationService.sendInterviewInviteNotification({
+              freelancerId: application.user,
+             jobTitle: application.job.title
+        });
+
          }else{
-             notification = new NotificationModel({
-                user:application.user,
-                message:`Sorry! Your Interview Invitation For this Job: "${application.job.title}" has been Canceled. Please contact the employer for more details.`,
-                title:"Interview Invitation Cancellation"
-            })
+              await notificationService.sendInterviewInviteCancellationNotification({
+              freelancerId: application.user,
+             jobTitle: application.job.title
+        });
          }
         
         
-        if(socketIo){
-            
-            socketIo.to(application.user.toString()).emit('notification',notification)
-        }else {
-            console.warn("SocketIO is not initialized!");
-        }
-
+       
         await application.save()
-        await notification.save()
+      
        
         res.status(200).json({message:"Applicants Invited for Interview"})
 
@@ -397,6 +392,7 @@ const createInterviewInvite = async(req,res)=>{
         const {invitationsTo,applications,interviewDate,interviewTime,location,jobId} = req.body
         const employer = await EmployerProfile.findOne({userId:id})
         const job  = await JobModel.findById(jobId)
+        const notificationService = req.app.get('notificationService');
         if(!employer || !job){
             return res.status(400).json({message:"Employer Profile or Job Not Found"})
         }
@@ -448,21 +444,10 @@ const createInterviewInvite = async(req,res)=>{
 
 
         for await (const app of  invitedApplicants) {
-            notification = new NotificationModel({
-                user:app._id,
-                message:`Congratulations! You've been invited to an Interview For this Job: "${job.title}". Please check  your email for more details or contact the employer.`,
-                title:"Invite For An Interview"
-            })
-
-            if(socketIo){
-            
-                socketIo.to(app._id.toString()).emit('notification',notification)
-            }else {
-                console.warn("SocketIO is not initialized!");
-            }
-
-            await notification.save()
-    
+            await notificationService.sendInterviewInviteNotification({
+              freelancerId:app._id,
+             jobTitle:job.title
+        });
         }
         res.status(200).json({message:'Invitation Message sent'})
         
