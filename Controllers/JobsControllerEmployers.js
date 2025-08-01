@@ -253,7 +253,7 @@ const viewJobApplications = async(req,res)=>{
 
         const applications = await ApplicationModel.find({job:Id}).populate({
            path: 'user',
-           select: 'name email phone education skills workExperience profileImage location ' 
+           select: 'name email phone education skills workExperience profileImage location workPortfolio' 
        })
       .populate({
         path :'job',

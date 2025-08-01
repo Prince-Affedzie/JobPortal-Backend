@@ -28,6 +28,9 @@ const DisputeSchema = new mongoose.Schema({
   details: {
     type: String
   },
+  evidence:{
+       type: String
+  },
   status: {
     type: String,
     enum: ['open', 'under_review', 'resolved', 'reassigned'],

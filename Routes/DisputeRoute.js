@@ -1,12 +1,16 @@
 
 const express = require('express');
 const disputeRouter = express.Router();
-const  {createDispute,getAllDisputes,resolveDispute,getDispute} = require('../Controllers/DisputeController');
+const  {generateEvidenceUploadURL,createDispute,getAllDisputes,resolveDispute,getDispute} = require('../Controllers/DisputeController');
 const {verify_token} =require('../MiddleWare/VerifyToken')
 const {verifyAdminRoute} = require('../MiddleWare/EligibilityVerification')
 
 
+
+disputeRouter.post('/create/reporting/evidence',verify_token, generateEvidenceUploadURL);
+
 disputeRouter.post('/create_dispute',verify_token, createDispute);
+
 
 
 disputeRouter.get('/admin/get_disputes',verify_token,getAllDisputes);

@@ -2,6 +2,7 @@
 const Dispute = require('../Models/DisputeModel');
 const {WorkSubmissionModel} = require('../Models/WorkSubmissionModel');
 const {NotificationModel} = require('../Models/NotificationModel')
+const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
 
 let socketIO = null;
 
@@ -10,11 +11,27 @@ function setSocketIO(ioInstance) {
     socketIO = ioInstance;
 }
 
+const generateEvidenceUploadURL = async (req, res) => {
+  try {
+
+    const { filename, contentType } = req.body;
+    const {id} = req.user
+    const fileKey = `reporting-evidences/${id}/${Date.now()}-${filename}`;
+
+    const uploadURL = await getUploadURL(fileKey,contentType);
+    const publicUrl = getPublicURL(fileKey);
+    console.log(uploadURL, fileKey)
+    res.status(200).json({ uploadURL,publicUrl });
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({ error: 'Failed to generate upload URL', details: err });
+  }
+};
 
 
 const createDispute = async (req, res) => {
   try {
-    const { against, submissionId, reason, taskId, details,tasktitle,reportedBy } = req.body;
+    const { against, submissionId, reason, taskId, details, evidence,tasktitle,reportedBy } = req.body;
     console.log(req.body)
     const raisedBy = req.user.id;
 
@@ -24,8 +41,11 @@ const createDispute = async (req, res) => {
       taskId,
       submissionId,
       reason,
-      details
+      details,
+      evidence
     });
+
+    
 
    const notification = new NotificationModel({
          user: against,
@@ -101,4 +121,4 @@ const resolveDispute = async (req, res) => {
 };
 
 
-module.exports = {createDispute,getAllDisputes,resolveDispute,getDispute,setSocketIO}
+module.exports = {createDispute,getAllDisputes,resolveDispute,getDispute, generateEvidenceUploadURL,setSocketIO}
