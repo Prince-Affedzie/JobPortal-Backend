@@ -6,6 +6,7 @@ const EmployerProfile = require( "../Models/EmployerProfile")
 const {Interview} = require('../Models/InterviewModel')
 const {sendInterviewInviteEmail} = require('../Services/emailService')
 const  cloudinary =require('../Config/Cloudinary')
+const {processEvent} = require('../Services/adminEventService')
 const { uploader } = cloudinary; 
 const streamifier = require('streamifier');
 const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
@@ -53,6 +54,7 @@ const employerSignUp =async(req,res)=>{
         user.phone = personalLine
         await user.save()
         await profile.save()
+        processEvent("NEW_EMPLOYER_ACCOUNT",profile)
         res.status(200).json({uploadUrl: uploadUrl})
 
     }catch(err){
@@ -100,6 +102,7 @@ const addJob = async(req,res)=>{
         employerprofile.postedJobs.push(job._id)
         await job.save()
         await employerprofile.save()
+        processEvent("NEW_JOB_POSTING",job);
         res.status(200).json({message:"Job Added Successfully"})
 
     }catch(err){

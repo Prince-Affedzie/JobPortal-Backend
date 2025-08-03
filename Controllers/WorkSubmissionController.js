@@ -4,6 +4,7 @@ const {MiniTask} = require('../Models/MiniTaskModel')
 const  cloudinary =require('../Config/Cloudinary')
 const io = require('../app')
 const { uploader } = cloudinary; 
+const {processEvent} = require('../Services/adminEventService')
 const streamifier = require('streamifier');
 const { getUploadURL, getPreviewURL } = require('../Services/aws_S3_file_Handling');
 
@@ -62,7 +63,7 @@ const submitWork = async (req, res) => {
     if (!task || !user || task.assignedTo.toString() !== id) {
       return res.status(400).json({ message: "Task Not Found or Unauthorized" });
     }
-     console.log(req.body)
+    
     const { message, fileKeys } = req.body; // fileKeys = array of S3 keys like ['submissions/task123/user456/file.pdf']
 
     const submission = new WorkSubmissionModel({
@@ -122,6 +123,7 @@ const reviewSubmission = async(req,res)=>{
             const task = await MiniTask.findById(submission.taskId)
             task.status = "Completed"
             await task.save()
+            processEvent("MICRO_JOB_COMPLETION",task)
          }
          await submission.save()
          res.status(200).json({message:"Submission Reviewed Successfully"})

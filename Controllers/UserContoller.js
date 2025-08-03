@@ -9,6 +9,7 @@ const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
 const {sendPasswordResetEmail} = require("../Services/emailService")
+const {processEvent} = require('../Services/adminEventService')
 const fs = require('fs');
 const path = require('path');
 const io = require('../app')
@@ -46,6 +47,7 @@ const signUp = async(req,res)=>{
     await user.save()
     const token = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
     res.cookie("token",token,{httpOnly:true,sameSite:"None",secure:true})
+    processEvent("NEW_USER",user);
     res.status(200).json({message:"Registration Successful",role:user.role})
 }catch(err){
     console.log(err)

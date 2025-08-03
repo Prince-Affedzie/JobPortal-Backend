@@ -9,6 +9,7 @@ const { uploader } = cloudinary;
 const streamifier = require('streamifier');
 const ConversationRoom = require('../Models/ConversationRoom');
 const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
+const {processEvent} = require('../Services/adminEventService')
 
 
 //const client = require('../Utils/redisClient')
@@ -235,6 +236,7 @@ const postMiniTask = async(req,res)=>{
             
         });
         await newTask.save()
+        processEvent("NEW_MICRO_JOB_POSTING",newTask);
         return res.status(200).json({message:"Task Created Successfully"})
 
 
@@ -330,8 +332,11 @@ const applyToMiniTask = async(req,res)=>{
         const user = await UserModel.findById(id)
         const notificationService = req.app.get('notificationService');
 
-        if(!miniTask || !user){
+        if(!miniTask || !user ){
             return res.status(404).json({message:"Job not Found"})
+        }
+        if( user._id.toString() === miniTask.employer._id.toString()){
+            return res.status(400).json({message:"You cannot Apply to Your Posted Job"})
         }
         if(!miniTask.applicants.includes(id)){
         
@@ -539,8 +544,8 @@ const deleteMiniTask = async(req,res)=>{
         const {Id} = req.params
         console.log(Id)
         const task = await MiniTask.findById(Id)
-        if(!task){
-            return res.status(400).json({message:"Task not found"})
+        if(!task || task.assignedTo !==null ||task.status === "In-progress"){
+            return res.status(400).json({message:"Task not found or This task is not allowed for deletion"})
         }
         await task.deleteOne()
         res.status(200).json({message:"Task Deleted Successfully"})

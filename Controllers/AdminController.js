@@ -4,6 +4,7 @@ const validator = require("validator")
 const {UserModel} = require("../Models/UserModel")
 const {JobModel} = require('../Models/JobsModel')
 const {MiniTask} =require("../Models/MiniTaskModel")
+const {Alert} =require("../Models/AlertModel")
 const EmployerProfile = require('../Models/EmployerProfile')
 
 const adminSignup = async(req,res)=>{
@@ -507,8 +508,64 @@ const modifyMiniTask = async(req,res)=>{
 }
 
 
+const fetchAlerts = async(req,res)=>{
+    try{
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 10);
+
+        const alerts = await Alert.find({
+        createdAt: { $gte: thirtyDaysAgo }
+         }).sort({ createdAt: -1 });
+         res.status(200).json(alerts)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const markAlertsAsRead = async(req,res)=>{
+    try{
+        const {ids} = req.body
+        
+        if(!Array.isArray(ids) || ids.length === 0){
+           return res.status(400).json({ 
+          error: "Invalid input: Expected non-empty array of IDs" 
+        });
+        }
+        await Alert.updateMany( 
+         { _id: { $in: ids } },
+         {$set: {isRead:true}}
+
+        )
+        res.status(200).json({message:"Alerts Marked As read"})
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const markAlertAsRead = async(req,res)=>{
+    try{
+        const {id} = req.params
+       
+        
+        await Alert.findByIdAndUpdate( id,
+
+         {$set: {isRead:true}}
+
+        )
+        res.status(200).json({message:"Alerts Marked As read"})
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+
 
 module.exports = {adminSignup,adminLogin,adminLogout,adminEditProfile, adminProfile,adminAddUser,modifyUserInfo,getAllEmployerProfiles,
     getAllUsers,getSingleUser, removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,removeJob,upDateJob,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
-    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask }
+    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead }

@@ -3,6 +3,7 @@ const Dispute = require('../Models/DisputeModel');
 const {WorkSubmissionModel} = require('../Models/WorkSubmissionModel');
 const {NotificationModel} = require('../Models/NotificationModel')
 const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
+const {processEvent} = require('../Services/adminEventService')
 
 let socketIO = null;
 
@@ -32,7 +33,7 @@ const generateEvidenceUploadURL = async (req, res) => {
 const createDispute = async (req, res) => {
   try {
     const { against, submissionId, reason, taskId, details, evidence,tasktitle,reportedBy } = req.body;
-    console.log(req.body)
+    
     const raisedBy = req.user.id;
 
     const dispute = await Dispute.create({
@@ -48,19 +49,21 @@ const createDispute = async (req, res) => {
     
 
    const notification = new NotificationModel({
-         user: against,
+         user: against._id,
          message:`Hey, A report has been raised on this task: "${tasktitle}" by ${reportedBy}. Due to that the task is under review.
          Our team would reach out as soon as possible to resolving any hanging issues.`,
          title:"Issue Report"
     
             })
       if (socketIO) {
-            socketIO.to(against.toString()).emit('notification', notification);
-            console.log(`Notification sent to ${against}`);
+            socketIO.to(against._id.toString()).emit('notification', notification);
+            console.log(`Notification sent to ${against._id}`);
         } else {
             console.warn("SocketIO is not initialized!");
         }
       await notification.save()
+      
+    processEvent('DISPUTE_RAISED',dispute);
 
     res.status(200).json(dispute);
   } catch (err) {
@@ -73,7 +76,7 @@ const getAllDisputes = async (req, res) => {
   console.log("Executing")
   try {
     const disputes = await Dispute.find()
-      .populate('raisedBy against submissionId taskId resolvedBy');
+      .populate('raisedBy against submissionId taskId resolvedBy').sort({createdAt:-1});
     res.status(200).json(disputes);
     console.log(disputes)
   } catch (err) {
