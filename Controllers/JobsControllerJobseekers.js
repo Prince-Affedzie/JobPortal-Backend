@@ -471,7 +471,7 @@ const getRecentJobApplications  =async(req,res)=>{
 const getCreatedMiniTasks = async(req,res)=>{
     try{
         const {id} =req.user
-        const minitasks = await MiniTask.find({employer:id}).populate("applicants")
+        const minitasks = await MiniTask.find({employer:id}).populate("applicants").sort({createdAt:-1})
         .populate("assignedTo")
         res.status(200).json(minitasks)
 
