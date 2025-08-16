@@ -10,7 +10,7 @@ const streamifier = require('streamifier');
 const ConversationRoom = require('../Models/ConversationRoom');
 const { getUploadURL, getPreviewURL, getPublicURL } = require('../Services/aws_S3_file_Handling')
 const {processEvent} = require('../Services/adminEventService')
-
+const  {matchApplicantsWithPipeline} = require('../Services/MicroJob_Applicants_Sorting')
 
 //const client = require('../Utils/redisClient')
 
@@ -468,12 +468,29 @@ const getRecentJobApplications  =async(req,res)=>{
     }
 }
 
-const getCreatedMiniTasks = async(req,res)=>{
+const getMyCreatedMiniTasks = async(req,res)=>{
     try{
         const {id} =req.user
         const minitasks = await MiniTask.find({employer:id}).populate("applicants").sort({createdAt:-1})
         .populate("assignedTo")
         res.status(200).json(minitasks)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const getMicroTaskApplicants = async(req,res)=>{
+    try{
+        const {id} =req.user
+        const {Id} = req.params
+        const { sortBy = "totalScore", order = "desc" } = req.query;
+        //const minitask = await MiniTask.findById(Id).populate("applicants").sort({createdAt:-1})
+        //.populate("assignedTo")
+        const applicants = await matchApplicantsWithPipeline(Id, sortBy, order);
+       
+        res.status(200).json(applicants)
 
     }catch(err){
         console.log(err)
@@ -610,4 +627,4 @@ const viewMiniTaskInfo = async(req,res)=>{
 
 module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,
     jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks,applyToMiniTask,removeAppliedMiniTasksFromDashboard,
-    getRecentJobApplications,getCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo}
+    getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo,getMicroTaskApplicants}

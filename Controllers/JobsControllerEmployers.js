@@ -1,4 +1,5 @@
 const { ApplicationModel } = require("../Models/ApplicationModel")
+const mongoose = require("mongoose")
 const {JobModel} = require("../Models/JobsModel")
 const {NotificationModel} = require("../Models/NotificationModel")
 const { UserModel } = require("../Models/UserModel")
@@ -250,28 +251,119 @@ const viewAllApplications = async(req,res)=>{
         res.status(500).json({message:"Internal Server Error"})
     }
 }
-const viewJobApplications = async(req,res)=>{
-    try{
-        const {Id} = req.params
+const viewJobApplications = async (req, res) => {
+  try {
+    const { Id } = req.params;
 
-        const applications = await ApplicationModel.find({job:Id}).populate({
-           path: 'user',
-           select: 'name email phone education skills workExperience profileImage location workPortfolio' 
-       })
-      .populate({
-        path :'job',
-        select:'title noOfApplicants status salary createdAt deliveryMode'
-        }).sort({createdAt:-1}).exec()
+    const applications = await ApplicationModel.aggregate([
+      {
+        $match: { job: new mongoose.Types.ObjectId(Id) } // only for the given job
+      },
+      {
+        $lookup: {
+          from: "users", // user collection
+          localField: "user",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+      {
+        $lookup: {
+          from: "jobs", // job collection
+          localField: "job",
+          foreignField: "_id",
+          as: "job"
+        }
+      },
+      { $unwind: "$job" },
 
-       
-        res.status(200).json(applications)
+      // ====== Score Calculation Logic ======
+      {
+        $addFields: {
+          expScore: {
+            $cond: [
+              { $gte: [{ $size: { $ifNull: ["$user.workExperience", []] } }, 3] },
+              30, // weight for >= 3 experiences
+              { $multiply: [{ $size: { $ifNull: ["$user.workExperience", []] } }, 10] }
+            ]
+          },
+          skillsScore: {
+            $multiply: [
+              { $size: { $ifNull: ["$user.skills", []] } },
+              10
+            ]
+          },
+          educationScore: {
+            $cond: [
+              { $gte: [{ $size: { $ifNull: ["$user.education", []] } }, 2] },
+              20,
+              10
+            ]
+          },
+          verificationScore: {
+            $cond: [{ $eq: ["$user.isVerified", true] }, 20, 0]
+          }
+        }
+      },
+      {
+        $addFields: {
+          totalScore: {
+            $add: ["$expScore", "$skillsScore", "$educationScore", "$verificationScore"]
+          }
+        }
+      },
 
+      // ====== Projection ======
+      {
+        $project: {
+          _id: 1,
+          coverLetter: 1,
+          resume: 1,
+          status: 1,
+          updatedAt: 1,
+          createdAt: 1,
+          "job._id":1,
+          "job.title": 1,
+          "job.salary": 1,
+          "job.deliveryMode": 1,
+          "job.noOfApplicants":1,
+          "job.status": 1,
+          "job.createdAt": 1,
+          "user.name": 1,
+          "user.email": 1,
+          "user.phone": 1,
+          "user.education": 1,
+          "user.skills": 1,
+          "user.workExperience": 1,
+          "user.profileImage": 1,
+          "user.location": 1,
+          "user.workPortfolio": 1,
+          "user.isVerified": 1,
+          "user.vettingStatus": 1,
+          "user.rating": 1,
+          "user.numberOfRatings": 1,
+          "user.ratingsReceived": 1,
+          expScore: 1,
+          skillsScore: 1,
+          educationScore: 1,
+          verificationScore: 1,
+          totalScore: 1
+        }
+      },
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message:"Internal Server Error"})
-    }
-}
+      // ====== Sort by best fit ======
+      {
+        $sort: { totalScore: -1, createdAt: -1 }
+      }
+    ]);
+
+    res.status(200).json(applications);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 const viewSingleApplication = async(req,res)=>{
     try{
