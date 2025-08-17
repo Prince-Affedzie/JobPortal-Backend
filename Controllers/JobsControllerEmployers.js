@@ -330,6 +330,7 @@ const viewJobApplications = async (req, res) => {
           "job.noOfApplicants":1,
           "job.status": 1,
           "job.createdAt": 1,
+         "user._id":1,
           "user.name": 1,
           "user.email": 1,
           "user.phone": 1,
@@ -357,6 +358,8 @@ const viewJobApplications = async (req, res) => {
         $sort: { totalScore: -1, createdAt: -1 }
       }
     ]);
+   
+    console.log(applications)
 
     res.status(200).json(applications);
   } catch (err) {
@@ -485,6 +488,7 @@ const createInterviewInvite = async(req,res)=>{
         const {id} = req.user
         
         const {invitationsTo,applications,interviewDate,interviewTime,location,jobId} = req.body
+        console.log(req.body)
         const employer = await EmployerProfile.findOne({userId:id})
         const job  = await JobModel.findById(jobId)
         const notificationService = req.app.get('notificationService');
