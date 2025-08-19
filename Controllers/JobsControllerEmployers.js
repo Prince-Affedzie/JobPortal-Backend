@@ -26,7 +26,7 @@ const employerSignUp =async(req,res)=>{
     const {id} = req.user
     try{
 
-        console.log(req.body)
+        
         const {companyName, companyEmail,companyLine,personalLine,companyLocation, companyWebsite,} = req.body
         const user = await UserModel.findById(id)
         if(!user){
@@ -71,8 +71,7 @@ const addJob = async(req,res)=>{
         const {id} = req.user
         const {title,description,category,jobType,industry,deliveryMode,company, companyEmail,
             location,paymentStyle, salary,skillsRequired,experienceLevel,responsibilities, deadLine,tags} = req.body
-            console.log(req.body)
-
+            
         const employerprofile = await EmployerProfile.findOne({userId:id})
        
         if(!employerprofile){
@@ -152,7 +151,7 @@ const modifyJobStatus =async(req,res)=>{
     try{
         const {Id} = req.params
         const {state} = req.body
-        console.log({state})
+       
         const job = await JobModel.findById(Id)
         if(!job){
             return res.status(404).json({message:"Job not Found"})
@@ -182,7 +181,7 @@ const getAllPostedJobs =async(req,res)=>{
 const viewJob = async(req,res)=>{
     try{
         const {Id} = req.params
-        console.log(Id)
+       
         const job = await JobModel.findById(Id)
         if(!job){
             return res.status(404).json({message:"Job not Found"})
@@ -359,7 +358,7 @@ const viewJobApplications = async (req, res) => {
       }
     ]);
    
-    console.log(applications)
+    
 
     res.status(200).json(applications);
   } catch (err) {
@@ -421,8 +420,7 @@ const modifyApplication =async(req,res)=>{
         }));
 
         const createdNotifications = await NotificationModel.insertMany(notificationsToCreate);
-        console.log(`Created ${createdNotifications.length} notifications.`);
-
+       
          if (socketIo) {
             for (const notification of createdNotifications) {
                 // Ensure notification.user is a string for socket.io room
@@ -488,7 +486,7 @@ const createInterviewInvite = async(req,res)=>{
         const {id} = req.user
         
         const {invitationsTo,applications,interviewDate,interviewTime,location,jobId} = req.body
-        console.log(req.body)
+       
         const employer = await EmployerProfile.findOne({userId:id})
         const job  = await JobModel.findById(jobId)
         const notificationService = req.app.get('notificationService');
