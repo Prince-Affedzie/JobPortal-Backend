@@ -1,17 +1,18 @@
 const express = require('express')
 const seekRouter = express.Router()
 const {upload} = require('../Config/Mutler.js')
-const {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,
-    jobSearchFilter,allJobs,postMiniTask,getMiniTasks,applyToMiniTask,viewMiniTaskInfo,removeAppliedMiniTasksFromDashboard,
+const {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,getBids, acceptBid,
+    jobSearchFilter,allJobs,postMiniTask,getMiniTasks, applyOrBidMiniTask ,viewMiniTaskInfo,removeAppliedMiniTasksFromDashboard,
     assignMiniTask,getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks ,getMicroTaskApplicants} = require("../Controllers/JobsControllerJobseekers")
 const {verify_token}= require('../MiddleWare/VerifyToken.js')
 const {verifyMiniTaskPostingEligibility} =require('../MiddleWare/EligibilityVerification.js')
 
 
 seekRouter.post('/h1/v2/apply/:Id',verify_token,upload.single("resume"),applyToJob)
-seekRouter.post('/h1/v2/mini_task/apply/:Id',verify_token,applyToMiniTask)
+seekRouter.post('/h1/v2/mini_task/apply/:Id',verify_token, applyOrBidMiniTask )
 seekRouter.post("/h1/v2/post_mini_task",verify_token,verifyMiniTaskPostingEligibility,postMiniTask)
 seekRouter.put("/h1/v2/assign/mini_task/:taskId/:applicantId",verify_token,verifyMiniTaskPostingEligibility,assignMiniTask)
+seekRouter.put("/h1/v2/accept_bid/mini_task/:taskId/:bidId",verify_token,verifyMiniTaskPostingEligibility,acceptBid)
 seekRouter.get('/h1/v2/view_details/:Id',verify_token,viewJob)
 seekRouter.get('/h1/v2/job_list',verify_token,allJobs)
 seekRouter.get('/h1/v2/get/mini_tasks',verify_token,getMiniTasks)
@@ -22,6 +23,7 @@ seekRouter.get("/h1/v2/view_application/:Id",verify_token,viewApplication)
 seekRouter.get("/h1/v2/get/recent_applications",verify_token,getRecentJobApplications)
 seekRouter.get("/h1/v2/get_created/mini_tasks",verify_token,getMyCreatedMiniTasks)
 seekRouter.get("/h1/v2/get_applicants/my_micro_task/:Id",verify_token,getMicroTaskApplicants)
+seekRouter.get("/h1/v2/get_bids/my_micro_task/:Id",verify_token,getBids)
 seekRouter.put("/h1/v2/edit/mini_task/:Id",verify_token,verifyMiniTaskPostingEligibility,editMiniTask)
 seekRouter.delete("/h1/v2/delete/mini_task/:Id",verify_token,verifyMiniTaskPostingEligibility,deleteMiniTask)
 seekRouter.get("/h1/v2/get_your_apllied/mini_tasks",verify_token,yourAppliedMiniTasks)

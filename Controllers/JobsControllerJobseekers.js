@@ -120,11 +120,9 @@ const applyToJob = async(req,res)=>{
       const {id} = req.user
       const{Id} = req.params
       const {coverLetter} = req.body
-      console.log("Body ",req.body)
-      console.log("file ",req.file)
+    
       const resume = req.file?req.file.filename: ''
-      console.log(req.body)
-      console.log(resume)
+     
     try{
 
         const job = await JobModel.findById(Id)
@@ -216,7 +214,7 @@ const viewApplication = async(req,res)=>{
 const postMiniTask = async(req,res)=>{
     try{
         const {id} =req.user
-        const { title, description, budget, deadline, locationType,address,category,subcategory,skillsRequired} = req.body;
+        const { title, description, budget,biddingType, deadline, locationType,address,category,subcategory,skillsRequired} = req.body;
         
         if (!title || !description || !budget || !deadline || !locationType) {
             return res.status(400).json({ error: "All required fields must be provided" });
@@ -226,6 +224,7 @@ const postMiniTask = async(req,res)=>{
             title,
             description,
             employer:id,
+            biddingType,
             budget,
             deadline,
             address,
@@ -245,6 +244,110 @@ const postMiniTask = async(req,res)=>{
         res.status(500).json({message:"Internal server Error"})
     }
 }
+
+const getBids = async (req, res) => {
+  const { Id } = req.params;
+
+  try {
+    const minitask = await MiniTask.findById(Id).populate("bids.bidder");
+
+    if (!minitask) {
+      return res.status(404).json({ message: "Task Not Found" });
+    }
+
+    // Extract bids
+    const Bids = minitask.bids.map((bid) => ({
+      _id: bid._id,
+      amount: bid.amount,
+      message: bid.message,
+      timeline:bid.timeline,
+      createdAt: bid.createdAt,
+      bidder: {
+        _id: bid.bidder?._id,
+        name: bid.bidder?.name,
+        phone: bid.bidder?.phone,
+        profileImage: bid.bidder?.profileImage,
+        skills:bid.bidder?.skills,
+        education:bid.bidder?.education,
+        workExperience: bid.bidder?.workExperience,
+        workPortfolio:bid.bidder?.workPortfolio,
+        Bio: bid.bidder?.Bio,
+        location:bid.bidder?.location,
+        isVerified: bid.bidder?.isVerified,
+        vettingStatus: bid.bidder?.vettingStatus,
+        rating:bid.bidder?.rating,
+        numberOfRatings:bid.bidder?.numberOfRatings,
+        ratingsReceived:bid.bidder?.ratingsReceived,
+       
+      },
+    }));
+
+    return res.status(200).json(Bids);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const acceptBid = async (req, res) => {
+  try {
+    const { taskId, bidId } = req.params;
+    const { id } = req.user; // employer
+
+    const miniTask = await MiniTask.findById(taskId);
+    if (!miniTask) return res.status(404).json({ message: "Task not found" });
+
+     if(miniTask.status === "In-progress" || miniTask.status === "Completed"){
+            return res.status(400).json({message:"Can not re-assign Task."})
+        }
+
+    if (miniTask.employer.toString() !== id) {
+      return res.status(403).json({ message: "Not authorized to accept bids on this task" });
+    }
+
+    const bid = miniTask.bids.id(bidId);
+    if (!bid) return res.status(404).json({ message: "Bid not found" });
+
+    // Update task assignment
+    miniTask.assignedTo = bid.bidder;
+    miniTask.status = "Assigned";
+    bid.status = "Accepted";
+
+    // Reject other bids
+    miniTask.bids.forEach(b => {
+      if (b._id.toString() !== bidId) b.status = "Rejected";
+    });
+
+     let room = await ConversationRoom.findOne({
+              participants: { $all: [id, bid.bidder], $size: 2 },
+               job: miniTask._id || null
+             
+            }).populate('participants');
+        
+            if (!room) {
+              room = await ConversationRoom.create({
+                participants: [id,bid.bidder],
+                job:  miniTask._id  || null,
+              });
+            }
+
+
+    await miniTask.save();
+    await room.save();
+
+    const notificationService = req.app.get("notificationService");
+    await notificationService.sendBidAcceptedNotification({
+      freelancerId: bid.bidder,
+      jobTitle: miniTask.title,
+    });
+
+    res.status(200).json({ message: "Bid accepted successfully" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 const assignMiniTask =async(req,res)=>{
     try{
@@ -324,44 +427,76 @@ const getMiniTasks = async(req,res)=>{
     }
 }
 
-const applyToMiniTask = async(req,res)=>{
-    try{
-        const {id} =req.user
-        const {Id} =req.params
-        const miniTask = await MiniTask.findById(Id).populate('employer _id')
-        const user = await UserModel.findById(id)
-        const notificationService = req.app.get('notificationService');
+const applyOrBidMiniTask = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const { Id } = req.params;
+    const { amount, message, timeline } = req.body; // bid fields
+    const miniTask = await MiniTask.findById(Id).populate("employer _id");
+    const user = await UserModel.findById(id);
 
-        if(!miniTask || !user ){
-            return res.status(404).json({message:"Job not Found"})
-        }
-        if( user._id.toString() === miniTask.employer._id.toString()){
-            return res.status(400).json({message:"You cannot Apply to Your Posted Job"})
-        }
-        if(!miniTask.applicants.includes(id)){
-        
-        
-        miniTask.applicants.push(id)
-        user.appliedMiniTasks.push(miniTask._id)
-        await miniTask.save()
-        await user.save()
-
-         await notificationService.sendMicroJobApplicationNotification({
-        clientId:  miniTask.employer._id,
-        jobTitle: miniTask.title})
-
-         return res.status(200).json({message:"Application Successful"})
-
-        }else{
-            return res.status(400).json({message:"You've Already Applied to this Task"})
-        }
-
-
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message:"Internal Server Error"})
+    if (!miniTask || !user) {
+      return res.status(404).json({ message: "Task not found" });
     }
-}
+
+    if (user._id.toString() === miniTask.employer._id.toString()) {
+      return res.status(400).json({ message: "You cannot apply/bid on your own task" });
+    }
+
+    // Case 1: open-bid → place a bid
+    if (miniTask.biddingType === "open-bid") {
+      const existingBid = miniTask.bids.find((b) => b.bidder.toString() === id);
+      if (existingBid) {
+        return res.status(400).json({ message: "You have already placed a bid on this task" });
+      }
+
+      miniTask.bids.push({ bidder: id, amount, message, timeline });
+      if (!miniTask.applicants.includes(id)) {
+        miniTask.applicants.push(id);
+        user.appliedMiniTasks.push(miniTask._id);
+      }
+
+      await miniTask.save();
+      await user.save();
+
+      const notificationService = req.app.get("notificationService");
+      await notificationService.sendBidNotification({
+        clientId: miniTask.employer._id,
+        jobTitle: miniTask.title,
+      });
+
+      return res.status(200).json({ message: "Bid placed successfully" });
+    }
+
+    // Case 2: fixed → normal application
+    if (miniTask.biddingType === "fixed") {
+      if (miniTask.applicants.includes(id)) {
+        return res.status(400).json({ message: "You have already applied to this task" });
+      }
+
+      miniTask.applicants.push(id);
+      user.appliedMiniTasks.push(miniTask._id);
+
+      await miniTask.save();
+      await user.save();
+
+      const notificationService = req.app.get("notificationService");
+      await notificationService.sendMicroJobApplicationNotification({
+        clientId: miniTask.employer._id,
+        jobTitle: miniTask.title,
+      });
+
+      return res.status(200).json({ message: "Application submitted successfully" });
+    }
+
+    return res.status(400).json({ message: "Invalid task type" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
 
 const acceptMiniTaskAssignment = async(req,res)=>{
     try{
@@ -396,7 +531,7 @@ const acceptMiniTaskAssignment = async(req,res)=>{
               });
             }
 
-         await notificationService.ssendMicroJobAcceptanceNotification({
+         await notificationService.sendMicroJobAcceptanceNotification({
          username:user.name,
          clientId:  task.employer._id,
          jobTitle: task.title})
@@ -559,7 +694,7 @@ const editMiniTask = async (req, res) => {
 const deleteMiniTask = async(req,res)=>{
     try{
         const {Id} = req.params
-        console.log(Id)
+       
         const task = await MiniTask.findById(Id)
         if(!task || task.assignedTo !==null ||task.status === "In-progress"){
             return res.status(400).json({message:"Task not found or This task is not allowed for deletion"})
@@ -626,5 +761,5 @@ const viewMiniTaskInfo = async(req,res)=>{
 
 
 module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,
-    jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks,applyToMiniTask,removeAppliedMiniTasksFromDashboard,
+    jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks, applyOrBidMiniTask ,getBids,acceptBid,removeAppliedMiniTasksFromDashboard,
     getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo,getMicroTaskApplicants}

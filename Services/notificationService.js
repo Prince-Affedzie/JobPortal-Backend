@@ -54,7 +54,8 @@ class NotificationService {
   async sendMicroJobAssignmentNotification({ freelancerId, jobTitle }) {
     return this.sendNotification({
       userId: freelancerId,
-      message: `Congratulations! You've been assigned to the mini task: "${jobTitle}". Please contact employer for more details.`,
+      message: `Congratulations! You've been assigned to the mini task: "${jobTitle}".Please Visit Your Micro Tasks Applications
+      Page to confirm your stands.`,
       title: "Micro Task Assignment"
     });
   }
@@ -66,6 +67,23 @@ class NotificationService {
       title: "Micro Task Application"
     });
   }
+
+  async sendBidNotification({ clientId, jobTitle }) {
+    return this.sendNotification({
+      userId: clientId,
+      message: `You've gotten a new Bid for your MicroTask with the title: ${jobTitle} `,
+      title: "Micro Task Bidding"
+    });
+  }
+
+  async sendBidAcceptedNotification({freelancerId ,jobTitle}){
+     return this.sendNotification({
+      userId: freelancerId,
+      message: `Congratulations! You've been assigned to the mini task: "${jobTitle}". Please Visit Your Micro Tasks Applications
+      Page to confirm your stands.`,
+      title: "Micro Task Assignment"
+    });
+  };
 
   async sendMicroJobAcceptanceNotification({ username, clientId, jobTitle }) {
     return this.sendNotification({
