@@ -76,8 +76,8 @@ const jobSchema = new schema({
     },
     status:{
         type: String,
-        enum:['Opened','Closed','Filled'],
-        default:"Opened"
+        enum:['Pending','Reviewing','Opened','Closed','Filled'],
+        default:"Pending"
     },
     noOfApplicants:{
            type: Number,

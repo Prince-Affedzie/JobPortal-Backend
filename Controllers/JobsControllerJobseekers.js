@@ -25,7 +25,7 @@ function setSocketIO(ioInstance) {
 
 const allJobs = async(req,res)=>{
     try{
-        let query = {}
+        let query = {status:"Opened"}
         const {category,search,type,location} = req.query
 
         if(search){
@@ -391,7 +391,7 @@ const assignMiniTask =async(req,res)=>{
 
 const getMiniTasks = async(req,res)=>{
     try{
-        let query ={}
+        let query ={status:'Open'}
         
         const {search,category,subcategory,location, modeofDelivery} = req.query
         if(category && category !== "All Categories"){

@@ -10,7 +10,7 @@ const {verifyMiniTaskPostingEligibility} =require('../MiddleWare/EligibilityVeri
 
 seekRouter.post('/h1/v2/apply/:Id',verify_token,upload.single("resume"),applyToJob)
 seekRouter.post('/h1/v2/mini_task/apply/:Id',verify_token, applyOrBidMiniTask )
-seekRouter.post("/h1/v2/post_mini_task",verify_token,verifyMiniTaskPostingEligibility,postMiniTask)
+seekRouter.post("/h1/v2/post_mini_task",verify_token,postMiniTask)
 seekRouter.put("/h1/v2/assign/mini_task/:taskId/:applicantId",verify_token,verifyMiniTaskPostingEligibility,assignMiniTask)
 seekRouter.put("/h1/v2/accept_bid/mini_task/:taskId/:bidId",verify_token,verifyMiniTaskPostingEligibility,acceptBid)
 seekRouter.get('/h1/v2/view_details/:Id',verify_token,viewJob)

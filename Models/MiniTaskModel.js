@@ -59,8 +59,8 @@ const miniTaskSchema = new Schema({
 
     status: { 
         type: String, 
-        enum: ["Open", "In-progress","Review","Rejected","Completed", "Closed","Assigned"], 
-        default: "Open" 
+        enum: ["Pending","Open", "In-progress","Review","Rejected","Completed", "Closed","Assigned"], 
+        default: "Pending" 
     },
 
     verificationRequired: { type: Boolean, default: false },
