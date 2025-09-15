@@ -38,7 +38,7 @@ app.use('/Uploads',express.static('Uploads'))
 app.set('trust proxy', 1);
 
 app.use(cors({
-    origin:process.env.Frontend_Url,
+    origin:true,
     credentials: true
 
 }))

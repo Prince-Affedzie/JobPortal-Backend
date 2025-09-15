@@ -390,6 +390,7 @@ const assignMiniTask =async(req,res)=>{
 }
 
 const getMiniTasks = async(req,res)=>{
+    
     try{
         let query ={status:'Open'}
         
@@ -708,27 +709,102 @@ const deleteMiniTask = async(req,res)=>{
     }
 }
 
-const yourAppliedMiniTasks = async(req,res)=>{
-    try{
-        const {id} = req.user
+const yourAppliedMiniTasks = async (req, res) => {
+    try {
+        const { id } = req.user;
+        
+        // Populate user with applied mini tasks and additional bid information
         const user = await UserModel.findById(id).populate({
-            path:'appliedMiniTasks',
-            populate:{
-                path:'employer',
-                select:'name phone profileImage'
+            path: 'appliedMiniTasks',
+            populate: [
+                {
+                    path: 'employer',
+                    select: 'name phone profileImage'
+                },
+                {
+                    path: 'bids.bidder',
+                    select: 'name'
+                }
+            ]
+        });
+
+        const applications = [];
+        const bids = [];
+
+        user.appliedMiniTasks.forEach(task => {
+            // Check if task is still open or assigned to this user
+            const isActiveTask = task.status === 'Open' || 
+                               (task.assignedTo && task.assignedTo.toString() === id.toString());
+            
+            if (!isActiveTask) return;
+
+            // Find user's bid if it exists
+            const userBid = task.bids.find(bid => bid.bidder._id.toString() === id.toString());
+
+            if (task.biddingType === "open-bid") {
+                // For open-bid tasks, include bid information
+                if (userBid) {
+                    bids.push({
+                        task: {
+                            _id: task._id,
+                            title: task.title,
+                            description: task.description,
+                            employer: task.employer,
+                            biddingType: task.biddingType,
+                            budget: task.budget,
+                            deadline: task.deadline,
+                            locationType: task.locationType,
+                            category: task.category,
+                            status: task.status,
+                            assignedTo:task.assignedTo,
+                            assignmentAccepted:task.assignmentAccepted,
+                            createdAt: task.createdAt
+                        },
+                        bid: {
+                            amount: userBid.amount,
+                            message: userBid.message,
+                            timeline: userBid.timeline,
+                            status: userBid.status,
+                            createdAt: userBid.createdAt
+                        }
+                    });
+                }
+            } else if (task.biddingType === "fixed") {
+                // For fixed-price tasks, include as application
+                applications.push({
+                    _id: task._id,
+                    title: task.title,
+                    description: task.description,
+                    employer: task.employer,
+                    biddingType: task.biddingType,
+                    budget: task.budget,
+                    deadline: task.deadline,
+                    locationType: task.locationType,
+                    category: task.category,
+                    status: task.status,
+                    assignedTo:task.assignedTo,
+                    assignmentAccepted:task.assignmentAccepted,
+                    appliedAt: task.createdAt // Using task creation date as applied date
+                });
             }
+        });
 
-        })
-      
-       const userMiniTaskApplications = user.appliedMiniTasks.filter(
-        (task)=>task.status === 'Open' || (task.assignedTo && task.assignedTo.toString() === id.toString()))
-        res.status(200).json(userMiniTaskApplications.reverse())
+        // Sort both arrays by creation date (newest first)
+        applications.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+        bids.sort((a, b) => new Date(b.bid.createdAt) - new Date(a.bid.createdAt));
+        console.log( applications)
+        console.log(  bids)
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message:"Internal Server Error"})
+        res.status(200).json({
+            applications,
+            bids
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Internal Server Error" });
     }
-}
+};
 
 const removeAppliedMiniTasksFromDashboard = async(req,res)=>{
     try{
