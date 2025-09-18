@@ -792,9 +792,7 @@ const yourAppliedMiniTasks = async (req, res) => {
         // Sort both arrays by creation date (newest first)
         applications.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
         bids.sort((a, b) => new Date(b.bid.createdAt) - new Date(a.bid.createdAt));
-        console.log( applications)
-        console.log(  bids)
-
+       
         res.status(200).json({
             applications,
             bids
