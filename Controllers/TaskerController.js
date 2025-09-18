@@ -371,6 +371,7 @@ const markTaskDoneByTasker = async (req, res) => {
   try {
     const { Id } = req.params;
     const { id } = req.user;
+    const notificationService = req.app.get('notificationService');
 
     const task = await MiniTask.findById(Id);
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -382,10 +383,19 @@ const markTaskDoneByTasker = async (req, res) => {
 
     task.markedDoneByTasker = true;
     task.taskerDoneAt = new Date();
+    await notificationService.sendTaskerMarkedDoneNotification({
+    clientId: task.employer,
+    taskTitle: task.title
+    });
 
     // Auto-complete if both marked
     if (task.markedDoneByEmployer) {
       task.status = "Completed";
+      await notificationService.sendTaskCompletedNotification({
+      clientId: task.employer,
+      taskerId: task.assignedTo,
+      taskTitle: task.title
+    });
     }
 
     await task.save();

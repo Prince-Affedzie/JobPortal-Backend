@@ -116,6 +116,38 @@ class NotificationService {
       title: "Invite For An Interview"
     });
   }
+
+
+  async sendTaskerMarkedDoneNotification({ clientId, taskTitle }) {
+    return this.sendNotification({
+      userId: clientId,
+      message: `The tasker has marked the task "${taskTitle}" as done. Please review and confirm.`,
+      title: "Task Marked as Done"
+    });
+  }
+
+   async sendClientMarkedDoneNotification({ taskerId, taskTitle }) {
+    return this.sendNotification({
+      userId: taskerId,
+      message: `The client has marked the task "${taskTitle}" as done. Once both confirm, the task will be completed.`,
+      title: "Task Marked as Done"
+    });
+  }
+
+  async sendTaskCompletedNotification({ clientId, taskerId, taskTitle }) {
+    await this.sendNotification({
+      userId: clientId,
+      message: `The task "${taskTitle}" has been successfully completed. Thank you!`,
+      title: "Task Completed"
+    });
+
+    await this.sendNotification({
+      userId: taskerId,
+      message: `The task "${taskTitle}" has been successfully completed. Great job!`,
+      title: "Task Completed"
+    });
+  }
+
 }
 
 module.exports = NotificationService;
