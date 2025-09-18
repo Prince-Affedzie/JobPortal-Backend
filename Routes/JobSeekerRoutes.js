@@ -1,9 +1,9 @@
-const express = require('express')
+/*const express = require('express')
 const seekRouter = express.Router()
 const {upload} = require('../Config/Mutler.js')
 const {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,getBids, acceptBid,
     jobSearchFilter,allJobs,postMiniTask,getMiniTasks, applyOrBidMiniTask ,viewMiniTaskInfo,removeAppliedMiniTasksFromDashboard,
-    assignMiniTask,getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks ,getMicroTaskApplicants} = require("../Controllers/JobsControllerJobseekers")
+    assignMiniTask,getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks ,getMicroTaskApplicants} = require("../Controllers/CommonController.js")
 const {verify_token}= require('../MiddleWare/VerifyToken.js')
 const {verifyMiniTaskPostingEligibility} =require('../MiddleWare/EligibilityVerification.js')
 
@@ -32,4 +32,4 @@ seekRouter.put("/h1/v2/accept_task_assignment/:Id",verify_token,acceptMiniTaskAs
 seekRouter.put("/h1/v2/reject_task_assignment/:Id",verify_token,rejectMiniTaskAssignment)
 seekRouter.put('/h1/v2/remove_mini_task_from_dashboard',verify_token,removeAppliedMiniTasksFromDashboard)
 
-module.exports = {seekRouter}
+module.exports = {seekRouter}*/

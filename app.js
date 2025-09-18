@@ -20,8 +20,11 @@ const {seekRouter} = require("./Routes/JobSeekerRoutes")
 const {submissionRoute} = require("./Routes/WorkSubmissionRoute")
 const {chatMessagingRoute} =require('./Routes/MessageChatRoute')
 const {disputeRouter} = require('./Routes/DisputeRoute')
+const {taskerRouter} = require('./Routes/TaskerRoute')
+const {clientRouter} = require('./Routes/ClientRoute')
+const {commonRouter} = require('./Routes/CommonRoute')
 const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
-const jobController = require('./Controllers/JobsControllerJobseekers')
+const jobController = require('./Controllers/CommonController')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
 const WorkSubmissionController  = require("./Controllers/WorkSubmissionController")
 const disputeController = require("./Controllers/DisputeController")
@@ -43,12 +46,13 @@ app.use(cors({
 
 }))
 
+
 const server = http.createServer(app)
 
 mongoose.connect(process.env.DB_URL)
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
-          
+      
          
          console.log("Listening on Port 5000")
         })
@@ -84,11 +88,14 @@ io.on('connection',(socket)=>{
 const notificationService = new NotificationService(io);
 app.use("/api",userRouter)
 app.use("/api",employerRoute)
-app.use("/api",seekRouter)
+//app.use("/api",seekRouter)
 app.use("/api",adminRouter)
 app.use("/api",submissionRoute)
 app.use("/api",chatMessagingRoute)
 app.use("/api",disputeRouter)
+app.use("/api",taskerRouter)
+app.use("/api",clientRouter)
+app.use("/api",commonRouter)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

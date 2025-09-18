@@ -1,4 +1,4 @@
-const mongoose = require('mongoose') 
+const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const bidSchema = new Schema({
@@ -18,10 +18,9 @@ const miniTaskSchema = new Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
     employer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    
+
     biddingType: { type: String, enum: ["fixed", "open-bid"], default: "fixed" }, 
-    budget: { type: Number }, // Client’s expected budget (can be null if open to bids)
-   
+    budget: { type: Number },
 
     deadline: { type: Date, required: true },
     locationType: { type: String, enum: ["remote", "on-site"], required: true },
@@ -59,18 +58,41 @@ const miniTaskSchema = new Schema({
 
     status: { 
         type: String, 
-        enum: ["Pending","Open", "In-progress","Review","Rejected","Completed", "Closed","Assigned"], 
+        enum: [
+            "Pending","Open","Assigned","In-progress","Review","Rejected","Completed","Closed"
+        ], 
         default: "Pending" 
     },
 
     verificationRequired: { type: Boolean, default: false },
     proofOfCompletion: { type: String, default: null },
 
+    //  Mutual completion tracking
+    markedDoneByEmployer: { type: Boolean, default: false },
+    employerDoneAt: { type: Date, default: null },
+
+    markedDoneByTasker: { type: Boolean, default: false },
+    taskerDoneAt: { type: Date, default: null }
+
 },{timestamps:true})
+
+// Auto-update status when both mark as done
+miniTaskSchema.pre("save", function(next) {
+    if (this.isModified("markedDoneByEmployer") && this.markedDoneByEmployer && !this.employerDoneAt) {
+        this.employerDoneAt = new Date();
+    }
+    if (this.isModified("markedDoneByTasker") && this.markedDoneByTasker && !this.taskerDoneAt) {
+        this.taskerDoneAt = new Date();
+    }
+    if (this.markedDoneByEmployer && this.markedDoneByTasker) {
+        this.status = "Completed";
+    }
+    next();
+});
 
 miniTaskSchema.index({title:1})
 miniTaskSchema.index({employer:1})
 miniTaskSchema.index({description:1})
 
-const MiniTask = mongoose.model("MiniTask",miniTaskSchema)
-module.exports ={MiniTask}
+const MiniTask = mongoose.model("MiniTask", miniTaskSchema)
+module.exports = { MiniTask }
