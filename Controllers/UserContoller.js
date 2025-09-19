@@ -341,10 +341,39 @@ const chat = async (req, res) => {
 
     }
   }
+
+  const deleteNotification = async(req,res)=>{
+    try{
+      const {Id} = req.params
+      console.log(Id)
+      const notification = await NotificationModel.findById(Id)
+      if(!notification){
+        return res.status(404).json({message:"Notification not Found"})
+      }
+      await notification.deleteOne()
+      res.status(200).json({message:"Notification Deleted Successfully"})
+
+    }catch(err){
+      console.log(err)
+      res.status(500).json({message:"Internal Server Error"})
+    }
+  }
+
+  const deleteBulkNotification = async(req,res)=>{
+    try{
+        const ids = req.body
+        console.log(req.body)
+        await NotificationModel.deleteMany({_id:{$in:ids}})
+        res.status(200).json({message:"Notifications Deleted Successfully"})
+    }catch(err){
+      console.log(err)
+      res.status(500).json({message:"Internal Server Error"})
+    }
+  }
   
 
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUp,login,logout,editProfile,viewProfile,  requestPasswordReset, resetPassword,
-    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate }
+module.exports = {signUp,login,logout,editProfile,viewProfile,  requestPasswordReset, resetPassword,deleteBulkNotification,
+    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, }

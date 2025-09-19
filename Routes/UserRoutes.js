@@ -1,6 +1,6 @@
 const express = require("express")
 const userRouter = express.Router()
-const {signUp,login,logout,editProfile,viewProfile,chat,getNotifications,createNotification, 
+const {signUp,login,logout,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
     markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword} = require('../Controllers/UserContoller')
 const {generatePortfolioUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
@@ -24,6 +24,10 @@ userRouter.post('/notifications',verify_token,createNotification)
 userRouter.get('/notifications',verify_token,getNotifications)
 userRouter.put('/mark_notifications/read',verify_token,markNotificationAsRead)
 userRouter.post('/user/upload_portfolio',verify_token,generatePortfolioUploadURL)
+
+userRouter.delete('/delete/notification/:Id',verify_token,deleteNotification)
+userRouter.post('/delete/bulk_notification',verify_token,deleteBulkNotification)
+//,deleteBulkNotification,deleteNotification
 
 
 module.exports = {userRouter}
