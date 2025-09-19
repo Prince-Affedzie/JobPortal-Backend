@@ -188,6 +188,22 @@ const getMyCreatedMiniTasks = async (req, res) => {
     }
 };
 
+
+const viewMiniTaskInfo = async(req,res)=>{
+    try{
+        const {Id} = req.params
+        const task = await MiniTask.findById(Id).populate("applicants").populate("assignedTo")
+        if(!task){
+            return res.status(400).json({message: 'Task not Found'})
+        }
+        res.status(200).json(task)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
 const getMicroTaskApplicants = async (req, res) => {
     try {
         const { Id } = req.params;
@@ -291,7 +307,6 @@ const markTaskDoneByClient = async (req, res) => {
       taskerId: task.assignedTo,
       taskTitle: task.title
     });
-     processEvent("MICRO_JOB_COMPLETION",task)
     }
 
     await task.save();
@@ -344,6 +359,7 @@ module.exports = {
     acceptBid,
     assignMiniTask,
     getMyCreatedMiniTasks,
+    viewMiniTaskInfo,
     getMicroTaskApplicants,
     editMiniTask,
     deleteMiniTask,

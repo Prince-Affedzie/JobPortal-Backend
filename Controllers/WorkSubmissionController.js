@@ -118,6 +118,13 @@ const reviewSubmission = async(req,res)=>{
         }
          submission.status = status || submission.status
          submission.feedback = feedback || submission.feedback
+
+         if(status === "approved"){
+            const task = await MiniTask.findById(submission.taskId)
+            task.status = "Completed"
+            await task.save()
+            processEvent("MICRO_JOB_COMPLETION",task)
+         }
          await submission.save()
          res.status(200).json({message:"Submission Reviewed Successfully"})
 

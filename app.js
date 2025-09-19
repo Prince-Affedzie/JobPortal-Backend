@@ -23,6 +23,9 @@ const {disputeRouter} = require('./Routes/DisputeRoute')
 const {taskerRouter} = require('./Routes/TaskerRoute')
 const {clientRouter} = require('./Routes/ClientRoute')
 const {commonRouter} = require('./Routes/CommonRoute')
+const {ratingRouter} = require('./Routes/RatingRoute')
+
+
 const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
 const jobController = require('./Controllers/CommonController')
 const jobControllerEmp = require('./Controllers/JobsControllerEmployers')
@@ -96,6 +99,7 @@ app.use("/api",disputeRouter)
 app.use("/api",taskerRouter)
 app.use("/api",clientRouter)
 app.use("/api",commonRouter)
+app.use("/api",ratingRouter)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

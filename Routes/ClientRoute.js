@@ -7,6 +7,7 @@ const {
     assignMiniTask,
     acceptBid,
     getMyCreatedMiniTasks,
+    viewMiniTaskInfo,
     getMicroTaskApplicants,
     getBids,
     editMiniTask,
@@ -23,6 +24,7 @@ clientRouter.put("/h1/v2/accept_bid/mini_task/:taskId/:bidId", verify_token, ver
 
 // View employer's tasks and applicants
 clientRouter.get("/h1/v2/get_created/mini_tasks", verify_token, getMyCreatedMiniTasks);
+clientRouter.get("/h1/v2/get_task/details/:Id", verify_token,viewMiniTaskInfo);
 clientRouter.get("/h1/v2/get_applicants/my_micro_task/:Id", verify_token, getMicroTaskApplicants);
 clientRouter.get("/h1/v2/get_bids/my_micro_task/:Id", verify_token, getBids);
 
