@@ -5,6 +5,8 @@ const { UserModel } = require('../Models/UserModel');
 const ConversationRoom = require('../Models/ConversationRoom');
 const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
+const { processEvent } = require('../Services/adminEventService');
+
 
 const applyToJob = async (req, res) => {
     const { id } = req.user;
@@ -396,6 +398,7 @@ const markTaskDoneByTasker = async (req, res) => {
       taskerId: task.assignedTo,
       taskTitle: task.title
     });
+     processEvent("MICRO_JOB_COMPLETION",task)
     }
 
     await task.save();

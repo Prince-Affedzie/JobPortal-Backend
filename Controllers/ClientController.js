@@ -291,6 +291,7 @@ const markTaskDoneByClient = async (req, res) => {
       taskerId: task.assignedTo,
       taskTitle: task.title
     });
+     processEvent("MICRO_JOB_COMPLETION",task)
     }
 
     await task.save();
