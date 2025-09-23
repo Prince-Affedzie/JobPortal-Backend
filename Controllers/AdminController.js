@@ -140,7 +140,7 @@ const getSingleUser = async(req,res)=>{
     try{
         const {Id} = req.params
 
-        const user = await UserModel.findById(Id).populate('appliedJobs','title')
+        const user = await UserModel.findById(Id).populate('appliedJobs','title').populate('appliedMiniTasks','title budget')
         if(!user){
             return res.status(400).json({message:'User not Found'})
         }

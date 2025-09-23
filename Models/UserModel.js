@@ -76,7 +76,7 @@ const userSchema = new Schema(
     appliedJobs: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Job",
+        ref: "JOb",
         index: true,
       },
     ],
