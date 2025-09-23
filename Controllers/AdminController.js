@@ -253,7 +253,7 @@ const adminAddJob = async(req,res)=>{
         const {id} = req.user
                 const {title,description,category,jobType,industry,deliveryMode,company, companyEmail,
                 location,paymentStyle, salary,skillsRequired,experienceLevel,responsibilities, deadLine,tags} = req.body
-                console.log(req.body)
+                
         
                 
         
@@ -375,7 +375,7 @@ const getSingleEmployerProfile = async(req,res)=>{
         if(!employer){
             return res.status(400).json({message:"Employer Profile not Found"})
         }
-        console.log(employer)
+       
         res.status(200).json(employer)
 
 
@@ -390,7 +390,7 @@ const modifyEmployerProfile =async(req,res)=>{
     try{
         const {Id} = req.params
         const update = req.body
-        console.log(req.body)
+       
 
         const employer = await EmployerProfile.findById(Id)
         if(!employer){
@@ -442,6 +442,8 @@ const getSingleMinitask = async(req,res)=>{
         const task = await MiniTask.findById(Id).populate('employer')
         .populate('applicants')
         .populate('assignedTo')
+         .populate("bids.bidder")
+        
         if(!task){
                 res.status.status(400).json({message:'Task Not Found'})
         } 
@@ -456,7 +458,7 @@ const getSingleMinitask = async(req,res)=>{
 const modifyMiniTaskStatus =async(req,res)=>{
     try{
         const {Id} = req.params
-        console.log(req.body)
+       
         const {status} =  req.body
         const task = await MiniTask.findById(Id)
         if(!task){
@@ -562,6 +564,10 @@ const markAlertAsRead = async(req,res)=>{
         res.status(500).json({message:"Internal Server Error"})
     }
 }
+
+
+
+
 
 
 

@@ -16,6 +16,7 @@ const EmployerProfile = require('./Models/EmployerProfile')
 const {userRouter} = require("./Routes/UserRoutes")
 const {employerRoute} = require("./Routes/EmpoyerRoutes")
 const {adminRouter} = require('./Routes/AdminRoute')
+const {AdminMinitaskRouter} = require('./Controllers/AdminMicroTaskController')
 const {seekRouter} = require("./Routes/JobSeekerRoutes")
 const {submissionRoute} = require("./Routes/WorkSubmissionRoute")
 const {chatMessagingRoute} =require('./Routes/MessageChatRoute')
@@ -24,6 +25,7 @@ const {taskerRouter} = require('./Routes/TaskerRoute')
 const {clientRouter} = require('./Routes/ClientRoute')
 const {commonRouter} = require('./Routes/CommonRoute')
 const {ratingRouter} = require('./Routes/RatingRoute')
+const {adminUsersMonitoringRoute} = require('./Routes/AdminUserMonitoringRoute')
 
 
 const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
@@ -52,7 +54,18 @@ app.use(cors({
 
 const server = http.createServer(app)
 
-mongoose.connect(process.env.DB_URL)
+mongoose.connect(process.env.DB_URL,
+    {
+      maxPoolSize: 10, // Limit concurrent connections
+      minPoolSize: 5,
+      maxIdleTimeMS: 30000,
+      socketTimeoutMS: 45000, // Close socket after 45s
+      connectTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000, // Fail fast if no server
+      retryWrites: true,
+      retryReads: true,
+    }
+)
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
       
@@ -63,6 +76,16 @@ mongoose.connect(process.env.DB_URL)
        .catch((err)=>{
         console.log(err)
        })
+
+
+ mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+    });
+
+
+ mongoose.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected');
+    });
 
 const io = new Server(server,{
     cors:{
@@ -100,6 +123,8 @@ app.use("/api",taskerRouter)
 app.use("/api",clientRouter)
 app.use("/api",commonRouter)
 app.use("/api",ratingRouter)
+app.use("/api",AdminMinitaskRouter)
+app.use("/api",adminUsersMonitoringRoute)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

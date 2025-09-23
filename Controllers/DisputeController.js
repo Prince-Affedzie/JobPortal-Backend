@@ -21,7 +21,6 @@ const generateEvidenceUploadURL = async (req, res) => {
 
     const uploadURL = await getUploadURL(fileKey,contentType);
     const publicUrl = getPublicURL(fileKey);
-    console.log(uploadURL, fileKey)
     res.status(200).json({ uploadURL,publicUrl });
   } catch (err) {
     console.log(err)
@@ -73,12 +72,12 @@ const createDispute = async (req, res) => {
 
 // Get all disputes for admin
 const getAllDisputes = async (req, res) => {
-  console.log("Executing")
+  
   try {
     const disputes = await Dispute.find()
       .populate('raisedBy against submissionId taskId resolvedBy').sort({createdAt:-1});
     res.status(200).json(disputes);
-    console.log(disputes)
+    
   } catch (err) {
     console.log(err)
     res.status(500).json({ message: 'Failed to fetch disputes', error: err });
