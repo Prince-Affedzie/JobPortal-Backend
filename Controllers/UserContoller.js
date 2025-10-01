@@ -21,6 +21,7 @@ const { uploader } = cloudinary;
 const signUp = async(req,res)=>{
     
     const {name,email,role,password,} =req.body
+    console.log("Signing Up")
 
     try{
     if(!name || !email || !role || !password){
@@ -48,7 +49,7 @@ const signUp = async(req,res)=>{
     const token = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
     res.cookie("token",token,{httpOnly:true,sameSite:"None",secure:true})
     processEvent("NEW_USER",user);
-    res.status(200).json({message:"Registration Successful",role:user.role})
+    res.status(200).json({message:"Registration Successful",role:user.role,user:user,token:token})
 }catch(err){
     console.log(err)
     res.status(500).json({message:"Internal Server Error"})
@@ -58,7 +59,7 @@ const signUp = async(req,res)=>{
 
 const login = async(req,res)=>{
     const {email,password} = req.body
-    console.log(req.body)
+    console.log("Logging in")
 
     try{
         if (!email || !password){
@@ -153,7 +154,7 @@ const editProfile = async(req,res)=>{
          
         const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
         console.log(req.body)
-        
+       
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
@@ -161,18 +162,14 @@ const editProfile = async(req,res)=>{
         }
         if (req.files) {
        const { profileImage, idCardImage } = req.files;
-
-      // Handle Profile Image Upload
+       
       if (profileImage && profileImage[0]) {
           user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
     }
-
-  // Handle ID Card Upload
       if (idCardImage && idCardImage[0]) {
         user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
       }
       
-  // Save the updated user
      await user.save();
     }
 

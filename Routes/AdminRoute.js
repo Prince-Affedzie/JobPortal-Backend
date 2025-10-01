@@ -6,7 +6,7 @@ const {verifyAdminRouteAccess} = require('../MiddleWare/EligibilityVerification'
 const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfile,adminAddUser,modifyUserInfo,
     getAllUsers,getSingleUser,removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,upDateJob,getAllEmployerProfiles,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
-    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead
+    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,getAllTaskers,
 } = require('../Controllers/AdminController')
 
 adminRouter.post('/admin/signUp',adminSignup)
@@ -37,5 +37,6 @@ adminRouter.put('/admin/modify_mini_task/:Id', verify_token,modifyMiniTask)
 adminRouter.get('/admin/all_alerts',verify_token,fetchAlerts)
 adminRouter.put('/admin/alerts/mark-all-read',verify_token,markAlertsAsRead)
 adminRouter.put('/admin/alerts/:id/read',verify_token,markAlertAsRead)
+adminRouter.get('/admin/get_all_taskers',verify_token,getAllTaskers)
 
 module.exports = {adminRouter}

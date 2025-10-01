@@ -7,10 +7,11 @@ const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants
 
 const postMiniTask = async (req, res) => {
     try {
+        console.log("Executing")
         const { id } = req.user;
         const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired } = req.body;
-
-        if (!title || !description || !budget || !deadline || !locationType) {
+        console.log(req.body)
+        if (!title || !description  || !deadline || !locationType) {
             return res.status(400).json({ error: "All required fields must be provided" });
         }
 
@@ -27,6 +28,8 @@ const postMiniTask = async (req, res) => {
             subcategory,
             skillsRequired,
         });
+
+        
 
         await newTask.save();
         processEvent("NEW_MICRO_JOB_POSTING", newTask);

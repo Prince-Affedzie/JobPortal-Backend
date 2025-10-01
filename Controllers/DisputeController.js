@@ -14,7 +14,7 @@ function setSocketIO(ioInstance) {
 
 const generateEvidenceUploadURL = async (req, res) => {
   try {
-
+    
     const { filename, contentType } = req.body;
     const {id} = req.user
     const fileKey = `reporting-evidences/${id}/${Date.now()}-${filename}`;
@@ -33,6 +33,7 @@ const createDispute = async (req, res) => {
   try {
     const { against, submissionId, reason, taskId, details, evidence,tasktitle,reportedBy } = req.body;
     
+    
     const raisedBy = req.user.id;
 
     const dispute = await Dispute.create({
@@ -45,18 +46,20 @@ const createDispute = async (req, res) => {
       evidence
     });
 
+    console.log(dispute)
+
     
 
    const notification = new NotificationModel({
-         user: against._id,
+         user:  dispute.against,
          message:`Hey, A report has been raised on this task: "${tasktitle}" by ${reportedBy}. Due to that the task is under review.
          Our team would reach out as soon as possible to resolving any hanging issues.`,
          title:"Issue Report"
     
             })
       if (socketIO) {
-            socketIO.to(against._id.toString()).emit('notification', notification);
-            console.log(`Notification sent to ${against._id}`);
+            socketIO.to(dispute.against.toString()).emit('notification', notification);
+            console.log(`Notification sent to ${against}`);
         } else {
             console.warn("SocketIO is not initialized!");
         }
@@ -66,6 +69,7 @@ const createDispute = async (req, res) => {
 
     res.status(200).json(dispute);
   } catch (err) {
+    console.log(err)
     res.status(500).json({ message: 'Failed to raise dispute', error: err });
   }
 };

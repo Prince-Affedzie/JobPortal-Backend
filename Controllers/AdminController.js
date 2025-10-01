@@ -566,6 +566,18 @@ const markAlertAsRead = async(req,res)=>{
 }
 
 
+const getAllTaskers = async(req,res)=>{
+    try{
+         const taskers = await UserModel.find({role:'job_seeker'}).sort({createdAt:-1})
+        
+         res.status(200).json(taskers)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message: "Internal Server Error"})
+    }
+}
+
+
 
 
 
@@ -574,4 +586,4 @@ const markAlertAsRead = async(req,res)=>{
 module.exports = {adminSignup,adminLogin,adminLogout,adminEditProfile, adminProfile,adminAddUser,modifyUserInfo,getAllEmployerProfiles,
     getAllUsers,getSingleUser, removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,removeJob,upDateJob,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
-    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead }
+    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,getAllTaskers }
