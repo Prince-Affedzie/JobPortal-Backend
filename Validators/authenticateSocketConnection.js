@@ -1,32 +1,46 @@
-const cookie = require('cookie'); 
+const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 
 const authenticateSocketConnection = (socket, next) => {
-    try {
-        const cookies = socket.handshake.headers.cookie;
-        
-        if (!cookies) {
-            return next(new Error('No Cookie Found'));
-        }
+    
+    let token = socket.handshake.auth?.token;
+    let authMethod = 'Auth Object'; 
 
-        // Use the cookie package to parse the cookies
-        const parsed = cookie.parse(cookies);
-        const token = parsed.token;
-        
-        if (!token) {
-            return next(new Error('No token Provided'));
+   
+    if (!token) {
+        const cookies = socket.handshake.headers.cookie;
+
+        if (cookies) {
+            try {
+                
+                const parsed = cookie.parse(cookies);
+                token = parsed.token;
+                authMethod = 'Cookie';
+            } catch (err) {
+               
+                console.error("Cookie parsing failed:", err);
+            }
+        }
+    }
+
+   
+    if (!token) {
+        return next(new Error('Authentication Error: No token found in cookie or auth object.'));
+    }
+
+    
+    jwt.verify(token, process.env.token, (err, user) => {
+        if (err) {
+           
+            console.error(`JWT Verification Failed (${authMethod}):`, err.message);
+            return next(new Error('Authentication Error: Invalid token.'));
         }
         
-        jwt.verify(token, process.env.token, (err, user) => {
-            if (err) return next(new Error('Authentication Error'));
-            socket.user = user;
-            next();
-        });
+       
+        socket.user = user;
         
-    } catch (err) {
-        console.log(err);
-        return next(new Error("Internal error"));
-    }
+        next();
+    });
 };
 
-module.exports = {authenticateSocketConnection}
+module.exports = { authenticateSocketConnection };

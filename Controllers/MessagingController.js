@@ -103,6 +103,8 @@ const getMessagesByRoom = async (req, res) => {
 const sendMessage = async (req, res) => {
   const { senderId, roomId,  text, content, mediaUrl, fileName } = req.body;
   const {id} =req.user
+  console.log("I'm receciving a request")
+  console.log("This is the body", req.body)
 
   try {
     const message = new Message({
