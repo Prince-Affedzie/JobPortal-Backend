@@ -225,6 +225,7 @@ const rejectMiniTaskAssignment = async (req, res) => {
 
         task.assignedTo = null;
         task.status = "Open";
+        task.finalAmount = null;
         await task.save();
 
         let room = await ConversationRoom.findOne({

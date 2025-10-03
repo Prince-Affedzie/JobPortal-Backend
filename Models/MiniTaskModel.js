@@ -21,6 +21,7 @@ const miniTaskSchema = new Schema({
 
     biddingType: { type: String, enum: ["fixed", "open-bid"], default: "fixed" }, 
     budget: { type: Number },
+    finalAmount: { type: Number, default: null },
 
     deadline: { type: Date, required: true },
     locationType: { type: String, enum: ["remote", "on-site"], required: true },

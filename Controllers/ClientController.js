@@ -104,6 +104,7 @@ const acceptBid = async (req, res) => {
         miniTask.assignedTo = bid.bidder;
         miniTask.status = "Assigned";
         bid.status = "Accepted";
+        miniTask.finalAmount = bid.amount;
 
         miniTask.bids.forEach(b => {
             if (b._id.toString() !== bidId) b.status = "Rejected";
@@ -150,6 +151,7 @@ const assignMiniTask = async (req, res) => {
 
         miniTask.assignedTo = applicantId;
         miniTask.status = "Assigned";
+        miniTask.finalAmount = miniTask.budget;
 
         let room = await ConversationRoom.findOne({
             participants: { $all: [id, applicantId], $size: 2 },

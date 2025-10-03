@@ -52,6 +52,19 @@ app.use(cors({
 }))
 
 
+ const runMigrations = async () => {
+    try {
+      await MiniTask.updateMany(
+        {}, 
+        { $set: { finalAmount: null } }
+      );
+      console.log('All users updated with default verification status');
+    } catch (err) {
+      console.error('Error during migration:', err);
+    }
+}
+
+
 const server = http.createServer(app)
 
 mongoose.connect(process.env.DB_URL,
@@ -68,7 +81,7 @@ mongoose.connect(process.env.DB_URL,
 )
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
-      
+          runMigrations()
          
          console.log("Listening on Port 5000")
         })
