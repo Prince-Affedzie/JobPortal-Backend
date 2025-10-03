@@ -273,7 +273,7 @@ const yourAppliedMiniTasks = async (req, res) => {
             populate: [
                 {
                     path: 'employer',
-                    select: 'name phone profileImage'
+                    select: 'name phone profileImage rating numberOfRatings'
                 },
                 {
                     path: 'bids.bidder',

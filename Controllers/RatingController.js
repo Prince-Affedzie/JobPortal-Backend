@@ -6,6 +6,7 @@ const addRating = async (req, res) => {
     const { userId } = req.params; 
     const ratedBy = req.user.id
     const {rating, feedback } = req.body;
+     
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });

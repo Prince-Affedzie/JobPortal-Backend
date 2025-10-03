@@ -59,7 +59,7 @@ const signUp = async(req,res)=>{
 
 const login = async(req,res)=>{
     const {email,password} = req.body
-    console.log("Logging in")
+   
 
     try{
         if (!email || !password){
@@ -67,6 +67,11 @@ const login = async(req,res)=>{
         }
         const lowerCaseEmail = email.toLowerCase()
         const findUser = await UserModel.findOne({email:lowerCaseEmail})
+               .populate({
+               path: 'ratingsReceived.ratedBy',
+               select: 'name profileImage role email phone'
+              })
+              .exec();
         if(!findUser){
             return res.status(404).json({message: "Account doesn't Exist"})
         }
@@ -222,7 +227,8 @@ const viewProfile = async(req,res)=>{
              select: 'name profileImage role email phone'
            })
            .exec();
-           
+          
+
         if(!user){
             return res.status(404).json({message:"Account not Found"})
         }

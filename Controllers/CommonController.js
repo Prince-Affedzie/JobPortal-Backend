@@ -821,7 +821,7 @@ const removeAppliedMiniTasksFromDashboard = async(req,res)=>{
 const viewMiniTaskInfo = async(req,res)=>{
     try{
         const {Id} = req.params
-        const task = await MiniTask.findById(Id).populate('employer','name phone profileImage isVerified email')
+        const task = await MiniTask.findById(Id).populate('employer','name phone profileImage isVerified email rating numberOfRatings')
         if(!task){
             return res.status(400).json({message: 'Task not Found'})
         }
