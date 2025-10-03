@@ -77,7 +77,7 @@ const getMessagesByRoom = async (req, res) => {
       query.createdAt = { $lt: new Date(cursor) };
     }
     
-    console.log(query);
+    
     
     // Always sort by createdAt descending for pagination
     const messages = await Message.find(query)

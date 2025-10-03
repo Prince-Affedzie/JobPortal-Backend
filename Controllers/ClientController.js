@@ -72,6 +72,7 @@ const getBids = async (req, res) => {
                 rating: bid.bidder?.rating,
                 numberOfRatings: bid.bidder?.numberOfRatings,
                 ratingsReceived: bid.bidder?.ratingsReceived,
+                createdAt:bid.bidder?.createdAt,
             },
         }));
 
@@ -271,7 +272,7 @@ const deleteMiniTask = async (req, res) => {
         const { Id } = req.params;
         const task = await MiniTask.findById(Id);
         if (!task || task.assignedTo !== null || task.status === "In-progress") {
-            return res.status(400).json({ message: "Task not found or This task is not allowed for deletion" });
+            return res.status(400).json({ message: "This task is not allowed for deletion" });
         }
         await task.deleteOne();
         res.status(200).json({ message: "Task Deleted Successfully" });

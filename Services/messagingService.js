@@ -4,7 +4,7 @@ const ConversationRoom = require('../Models/ConversationRoom');
 const onlineUsers = new Map();
 
 function socketHandler(io, socket) {
-  console.log('User connected:', socket.id);
+  
 
   socket.on('joinRoom', ({ roomId }) => {
     socket.join(roomId);

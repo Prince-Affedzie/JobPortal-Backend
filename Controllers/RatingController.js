@@ -1,12 +1,9 @@
 const { UserModel } = require("../Models/UserModel");
 
-/**
- * Add a rating to a user
- * - Recalculates the average rating
- */
+
 const addRating = async (req, res) => {
   try {
-    const { userId } = req.params; // the person being rated
+    const { userId } = req.params; 
     const ratedBy = req.user.id
     const {rating, feedback } = req.body;
 
@@ -49,9 +46,7 @@ const addRating = async (req, res) => {
   }
 };
 
-/**
- * Get a user’s ratings and feedback
- */
+
 const getUserRatings = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -73,9 +68,7 @@ const getUserRatings = async (req, res) => {
   }
 };
 
-/**
- * Update a rating (if someone wants to edit their feedback)
- */
+
 const updateRating = async (req, res) => {
   try {
     const { userId, ratingId } = req.params;

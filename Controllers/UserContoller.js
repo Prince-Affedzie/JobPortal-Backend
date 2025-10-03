@@ -217,6 +217,12 @@ const viewProfile = async(req,res)=>{
     try{
         const {id} =req.user
         const user = await UserModel.findById(id)
+          .populate({
+             path: 'ratingsReceived.ratedBy',
+             select: 'name profileImage role email phone'
+           })
+           .exec();
+           
         if(!user){
             return res.status(404).json({message:"Account not Found"})
         }
