@@ -37,11 +37,19 @@ const paymentSchema = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["momo", "card", "bank", "wallet"],
-      default: "momo",
+      enum: ["mobile_money", "card", "bank", "wallet"],
+      default: "mobile_money",
     },
+    paymentChannel: {
+    type: String, 
+  },
+   
+   mobileMoneyNumber: {
+    type: String,
+  },
   },
   { timestamps: true }
 );
+const Payment = mongoose.model("Payment",paymentSchema)
 
-module.exports = mongoose.model("Payment", paymentSchema);
+module.exports = {Payment}

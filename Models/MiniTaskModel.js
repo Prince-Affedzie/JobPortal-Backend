@@ -73,7 +73,8 @@ const miniTaskSchema = new Schema({
     employerDoneAt: { type: Date, default: null },
 
     markedDoneByTasker: { type: Boolean, default: false },
-    taskerDoneAt: { type: Date, default: null }
+    taskerDoneAt: { type: Date, default: null },
+    funded:{type:Boolean,default:false},
 
 },{timestamps:true})
 
