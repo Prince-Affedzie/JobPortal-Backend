@@ -13,7 +13,8 @@ const {
     yourAppliedMiniTasks,
     removeAppliedMiniTasksFromDashboard,
     markTaskDoneByTasker,
-    unmarkTaskDoneByTasker
+    unmarkTaskDoneByTasker,
+    viewEarnings,
 } = require("../Controllers/TaskerController.js");
 
 // Job application routes
@@ -34,5 +35,8 @@ taskerRouter.get("/h1/v2/get/recent_applications", verify_token, getRecentJobApp
 // Mini task management
 taskerRouter.get("/h1/v2/get_your_applied/mini_tasks", verify_token, yourAppliedMiniTasks);
 taskerRouter.put('/h1/v2/remove_mini_task_from_dashboard', verify_token, removeAppliedMiniTasksFromDashboard);
+
+//earnings
+taskerRouter.get("/h1/v2/view_all_earnings",verify_token,viewEarnings)
 
 module.exports = { taskerRouter };

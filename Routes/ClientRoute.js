@@ -13,7 +13,8 @@ const {
     editMiniTask,
     deleteMiniTask,
     markTaskDoneByClient,
-    unmarkTaskDoneByClient
+    unmarkTaskDoneByClient,
+    viewAllPayments,
 } = require("../Controllers/ClientController.js");
 
 // Mini task creation and management
@@ -34,4 +35,7 @@ clientRouter.put("/h1/v2/mark_task_as_done/client/:Id", verify_token, verifyMini
 clientRouter.put("/h1/v2/mark_task__undone/client/:Id", verify_token, verifyMiniTaskPostingEligibility, unmarkTaskDoneByClient);
 clientRouter.delete("/h1/v2/delete/mini_task/:Id", verify_token, verifyMiniTaskPostingEligibility, deleteMiniTask);
 
+
+// view Payments 
+clientRouter.get('/h1/v2/get_all_payments',verify_token,viewAllPayments)
 module.exports = { clientRouter };

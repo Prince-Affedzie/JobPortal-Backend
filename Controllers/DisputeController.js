@@ -32,7 +32,7 @@ const generateEvidenceUploadURL = async (req, res) => {
 const createDispute = async (req, res) => {
   try {
     const { against, submissionId, reason, taskId, details, evidence,tasktitle,reportedBy } = req.body;
-    
+    const notificationService = req.app.get('notificationService');
     
     const raisedBy = req.user.id;
 
@@ -46,25 +46,11 @@ const createDispute = async (req, res) => {
       evidence
     });
 
-    console.log(dispute)
-
-    
-
-   const notification = new NotificationModel({
-         user:  dispute.against,
-         message:`Hey, A report has been raised on this task: "${tasktitle}" by ${reportedBy}. Due to that the task is under review.
-         Our team would reach out as soon as possible to resolving any hanging issues.`,
-         title:"Issue Report"
-    
-            })
-      if (socketIO) {
-            socketIO.to(dispute.against.toString()).emit('notification', notification);
-            console.log(`Notification sent to ${against}`);
-        } else {
-            console.warn("SocketIO is not initialized!");
-        }
-      await notification.save()
-      
+    await notificationService.sendDisputeRaisedNotification({
+      opponent:dispute.against,
+      taskTitle: tasktitle,
+      reportedBy:reportedBy
+    }) 
     processEvent('DISPUTE_RAISED',dispute);
 
     res.status(200).json(dispute);
@@ -108,7 +94,7 @@ const resolveDispute = async (req, res) => {
   try {
     const { disputeId } = req.params;
     const { resolutionNotes, newStatus } = req.body;
-    console.log(req.body)
+    const notificationService = req.app.get('notificationService');
     const adminId = req.user.id;
 
     const updated = await Dispute.findByIdAndUpdate(disputeId, {
@@ -118,7 +104,14 @@ const resolveDispute = async (req, res) => {
       updatedAt: new Date()
     }, { new: true });
     
-
+   await notificationService.sendDisputeResolvedNotification({
+    party1:updated.against,
+    party2:updated.raisedBy,
+    taskTitle:updated.taskId,
+    resolution:resolutionNotes,
+    caseId:updated._id,
+   
+   })
     res.status(200).json(updated);
   } catch (err) {
     console.log(err)

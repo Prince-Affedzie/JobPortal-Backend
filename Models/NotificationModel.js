@@ -9,6 +9,9 @@ const notificationsSchema = new schema({
     type:{
         type:String
     },
+    title:{
+         type:String
+    },
     message:{
         type:String
     },

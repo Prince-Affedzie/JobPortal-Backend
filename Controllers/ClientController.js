@@ -2,6 +2,7 @@ const { JobModel } = require('../Models/JobsModel');
 const { MiniTask } = require("../Models/MiniTaskModel");
 const { UserModel } = require('../Models/UserModel');
 const ConversationRoom = require('../Models/ConversationRoom');
+const {Payment} = require('../Models/PaymentModel')
 const { processEvent } = require('../Services/adminEventService');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
 
@@ -88,14 +89,14 @@ const acceptBid = async (req, res) => {
         const { taskId, bidId } = req.params;
         const { id } = req.user;
 
-        const miniTask = await MiniTask.findById(taskId);
+        const miniTask = await MiniTask.findById(taskId).populate('employer','_id name');
         if (!miniTask) return res.status(404).json({ message: "Task not found" });
 
         if (miniTask.status === "In-progress" || miniTask.status === "Completed") {
             return res.status(400).json({ message: "Can not re-assign Task." });
         }
 
-        if (miniTask.employer.toString() !== id) {
+        if (miniTask.employer._id.toString() !== id) {
             return res.status(403).json({ message: "Not authorized to accept bids on this task" });
         }
 
@@ -131,6 +132,7 @@ const acceptBid = async (req, res) => {
         await notificationService.sendBidAcceptedNotification({
             freelancerId: bid.bidder,
             jobTitle: miniTask.title,
+            clientName: miniTask.employer.name,
         });
 
         res.status(200).json({ message: "Bid accepted successfully" });
@@ -144,7 +146,7 @@ const assignMiniTask = async (req, res) => {
     try {
         const { id } = req.user;
         const { taskId, applicantId } = req.params;
-        const miniTask = await MiniTask.findById(taskId);
+        const miniTask = await MiniTask.findById(taskId).populate('employer','name');
         const notificationService = req.app.get('notificationService');
 
         if (!miniTask || miniTask.status === "In-progress" || miniTask.status === "Completed") {
@@ -170,7 +172,8 @@ const assignMiniTask = async (req, res) => {
 
         await notificationService.sendMicroJobAssignmentNotification({
             freelancerId: applicantId,
-            jobTitle: miniTask.title
+            jobTitle: miniTask.title,
+            clientName: miniTask.employer.name,
         });
 
         await miniTask.save();
@@ -292,11 +295,11 @@ const markTaskDoneByClient = async (req, res) => {
     const { id } = req.user;
      const notificationService = req.app.get('notificationService');
 
-    const task = await MiniTask.findById(Id);
+    const task = await MiniTask.findById(Id).populate('employer','_id name');
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     // Ensure only employer can mark this
-    if (task.employer.toString() !== id) {
+    if (task.employer._id.toString() !== id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -304,14 +307,15 @@ const markTaskDoneByClient = async (req, res) => {
     task.employerDoneAt = new Date();
     await notificationService.sendClientMarkedDoneNotification({
     taskerId: task.assignedTo,
-    taskTitle: task.title
+    taskTitle: task.title,
+    clientName:task.employer.name,
     });
 
     // Auto-complete if both marked
     if (task.markedDoneByTasker) {
       task.status = "Completed";
       await notificationService.sendTaskCompletedNotification({
-      clientId: task.employer,
+      clientId: task.employer._id,
       taskerId: task.assignedTo,
       taskTitle: task.title
     });
@@ -359,6 +363,18 @@ const unmarkTaskDoneByClient = async (req, res) => {
   }
 };
 
+const viewAllPayments = async(req,res)=>{
+    try{
+        const {id} = req.user
+        const payments = await Payment.find({initiator:id}).populate('taskId').sort({createdAt:-1})
+        res.status(200).json(payments)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message: "Internal Server Error"})
+    }
+}
+
 
 
 module.exports = {
@@ -372,5 +388,6 @@ module.exports = {
     editMiniTask,
     deleteMiniTask,
     markTaskDoneByClient, 
-    unmarkTaskDoneByClient
+    unmarkTaskDoneByClient,
+    viewAllPayments,
 };

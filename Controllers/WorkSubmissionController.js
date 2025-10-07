@@ -57,8 +57,9 @@ const submitWork = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { id } = req.user;
+    const notificationService = req.app.get("notificationService");
     const user = await UserModel.findById(id);
-    const task = await MiniTask.findById(taskId);
+    const task = await MiniTask.findById(taskId).populate();
 
     if (!task || !user || task.assignedTo.toString() !== id) {
       return res.status(400).json({ message: "Task Not Found or Unauthorized" });
@@ -75,6 +76,19 @@ const submitWork = async (req, res) => {
     });
 
     await submission.save();
+
+    await notificationService.sendWorkSubmissionNotification({
+     clientId:task.employer,
+     taskTitle:task.title,
+     freelancerName: user.name,
+     submissionId:submission._id
+    })
+
+    await notificationService.sendWorkSubmissionConfirmation({
+      freelancerId:user._id,
+      taskTitle: task.title,
+    })
+
     res.status(200).json({ message: "Submission Sent Successfully" });
 
   } catch (err) {
@@ -111,14 +125,40 @@ const reviewSubmission = async(req,res)=>{
         const {submissionId} = req.params
         const {id} = req.user
         const {status,feedback} = req.body
-        const submission = await  WorkSubmissionModel.findById(submissionId)
+        const submission = await  WorkSubmissionModel.findById(submissionId).populate('clientId','_id name')
+        const task = await MiniTask.findById(submission.taskId)
+         const notificationService = req.app.get("notificationService");
        
-        if(!submission || submission.clientId.toString()!==id ){
+        if(!submission || submission.clientId._id.toString()!==id ){
             return res.status(403).json({message:"Not authorized to review this submission."})
         }
          submission.status = status || submission.status
          submission.feedback = feedback || submission.feedback
          await submission.save()
+
+         if(status === "approved"){
+          await notificationService.sendSubmissionApprovedNotification({
+             freelancerId:submission.freelancerId,
+             taskTitle:task.title,
+             clientName: submission.clientId.name,
+             feedback:feedback
+          })
+         }else if(status === "revision_requested"){
+           await notificationService.sendRevisionRequestedNotification({
+             freelancerId:submission.freelancerId,
+             taskTitle:task.title,
+             clientName: submission.clientId.name,
+             feedback:feedback
+          })
+         }else if(status === "rejected"){
+            await notificationService.sendSubmissionRejectedNotification({
+             freelancerId:submission.freelancerId,
+             taskTitle:task.title,
+             clientName: submission.clientId.name,
+             feedback:feedback
+            })
+         }
+
          res.status(200).json({message:"Submission Reviewed Successfully"})
 
     }catch(err){

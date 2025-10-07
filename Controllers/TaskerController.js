@@ -1,6 +1,7 @@
 const { JobModel } = require('../Models/JobsModel');
 const { ApplicationModel } = require("../Models/ApplicationModel");
 const { MiniTask } = require("../Models/MiniTaskModel");
+const {Payment} = require('../Models/PaymentModel')
 const { UserModel } = require('../Models/UserModel');
 const ConversationRoom = require('../Models/ConversationRoom');
 const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
@@ -99,7 +100,7 @@ const applyOrBidMiniTask = async (req, res) => {
         const { id } = req.user;
         const { Id } = req.params;
         const { amount, message, timeline } = req.body;
-        const miniTask = await MiniTask.findById(Id).populate("employer _id");
+        const miniTask = await MiniTask.findById(Id).populate('employer',' _id name');
         const user = await UserModel.findById(id);
 
         if (!miniTask || !user) {
@@ -129,6 +130,8 @@ const applyOrBidMiniTask = async (req, res) => {
             await notificationService.sendBidNotification({
                 clientId: miniTask.employer._id,
                 jobTitle: miniTask.title,
+                bidderName:user.name,
+                bidAmount:amount,
             });
 
             return res.status(200).json({ message: "Bid placed successfully" });
@@ -149,6 +152,7 @@ const applyOrBidMiniTask = async (req, res) => {
             await notificationService.sendMicroJobApplicationNotification({
                 clientId: miniTask.employer._id,
                 jobTitle: miniTask.title,
+                taskerName:user.name,
             });
 
             return res.status(200).json({ message: "Application submitted successfully" });
@@ -374,11 +378,11 @@ const markTaskDoneByTasker = async (req, res) => {
     const { id } = req.user;
     const notificationService = req.app.get('notificationService');
 
-    const task = await MiniTask.findById(Id);
+    const task = await MiniTask.findById(Id).populate('assignedTo','_id name');
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     // Ensure only assigned freelancer can mark this
-    if (task.assignedTo?.toString() !== id) {
+    if (task.assignedTo?._id.toString() !== id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -386,7 +390,8 @@ const markTaskDoneByTasker = async (req, res) => {
     task.taskerDoneAt = new Date();
     await notificationService.sendTaskerMarkedDoneNotification({
     clientId: task.employer,
-    taskTitle: task.title
+    taskTitle: task.title,
+    taskerName:task.assignedTo.name,
     });
 
     // Auto-complete if both marked
@@ -439,6 +444,25 @@ const unmarkTaskDoneByTasker = async (req, res) => {
   }
 };
 
+const viewEarnings = async(req,res)=>{
+    try{
+        const {id} = req.user
+        const earnings = await Payment.find({
+             beneficiary: id,
+             
+        })
+        .populate('taskId')
+        .populate('initiator', 'name profileImage')
+        .sort({ createdAt: -1 })
+        .exec();
+        console.log(earnings)
+        res.status(200).json(earnings)
+
+    }catch(err){
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
 
 module.exports = {
     applyToJob,
@@ -451,5 +475,6 @@ module.exports = {
     yourAppliedMiniTasks,
     removeAppliedMiniTasksFromDashboard,
     markTaskDoneByTasker,
-    unmarkTaskDoneByTasker
+    unmarkTaskDoneByTasker,
+    viewEarnings,
 };

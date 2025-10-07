@@ -9,8 +9,9 @@ const http = require('http')
 const {JobModel} = require('./Models/JobsModel')
 const { UserModel } = require( "./Models/UserModel")
 const {MiniTask} =require("./Models/MiniTaskModel")
-const ConversationRoom = require('./Models/ConversationRoom');
+const ConversationRoom = require('./Models/ConversationRoom'); 
 const EmployerProfile = require('./Models/EmployerProfile')
+const {NotificationModel} = require('./Models/NotificationModel')
 
 
 const {userRouter} = require("./Routes/UserRoutes")
@@ -52,18 +53,18 @@ app.use(cors({
 
 }))
 
-
+ 
  
 const server = http.createServer(app)
 
 mongoose.connect(process.env.DB_URL,
     {
-      maxPoolSize: 10, // Limit concurrent connections
+      maxPoolSize: 10,
       minPoolSize: 5,
       maxIdleTimeMS: 30000,
-      socketTimeoutMS: 45000, // Close socket after 45s
+      socketTimeoutMS: 45000, 
       connectTimeoutMS: 30000,
-      serverSelectionTimeoutMS: 5000, // Fail fast if no server
+      serverSelectionTimeoutMS: 5000, 
       retryWrites: true,
       retryReads: true,
     }
