@@ -28,6 +28,7 @@ const {commonRouter} = require('./Routes/CommonRoute')
 const {ratingRouter} = require('./Routes/RatingRoute')
 const {paymentRouter} = require('./Routes/PaymentRoute')
 const {adminUsersMonitoringRoute} = require('./Routes/AdminUserMonitoringRoute')
+const {twilioRouter} = require('./Controllers/twilioResetController')
 
 
 const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
@@ -129,6 +130,7 @@ app.use("/api",ratingRouter)
 app.use("/api",paymentRouter)
 app.use("/api",AdminMinitaskRouter)
 app.use("/api",adminUsersMonitoringRoute)
+app.use("/api",twilioRouter)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

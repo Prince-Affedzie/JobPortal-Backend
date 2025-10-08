@@ -158,7 +158,7 @@ const editProfile = async(req,res)=>{
     try{
          
         const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
-        console.log(req.body)
+       
        
         const {id} = req.user
         const user = await UserModel.findById(id)
@@ -180,6 +180,53 @@ const editProfile = async(req,res)=>{
 
         
         user.email = email || user.email
+        user.phone = phone || user.phone
+        user.skills = skills || user.skills
+        user.education = education || user.education
+        user.workExperience = workExperience || user.workExperience
+        user.Bio = Bio || user.Bio
+        user.location = location || user.location
+        user.workPortfolio = workPortfolio ||  user.workPortfolio
+
+        await user.save()
+        res.status(200).json({message:"Profile Updated Successfully"})
+
+
+       
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message: "Internal Server Error"})
+    }
+}
+
+const onboarding = async(req,res)=>{
+    try{
+         
+        const {phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
+        const {id} = req.user
+        const user = await UserModel.findById(id)
+
+        if(!user){
+            return res.status(404).json({message:"Account Doesn't Exist"})
+        }
+        const phoneExist = await UserModel.findOne({phone:phone})
+        if(phoneExist){
+          return res.status(403).json({message:"Phone Number Already Exist"})
+        }
+
+        if (req.files) {
+       const { profileImage, idCardImage } = req.files;
+       
+      if (profileImage && profileImage[0]) {
+          user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
+    }
+      if (idCardImage && idCardImage[0]) {
+        user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
+      }
+      
+     await user.save();
+    }
+
         user.phone = phone || user.phone
         user.skills = skills || user.skills
         user.education = education || user.education
@@ -384,5 +431,5 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUp,login,logout,editProfile,viewProfile,  requestPasswordReset, resetPassword,deleteBulkNotification,
+module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,  requestPasswordReset, resetPassword,deleteBulkNotification,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, }

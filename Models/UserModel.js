@@ -23,6 +23,7 @@ const userSchema = new Schema(
     },
     phone: {
       type: String,
+      unique:true,
       default: null,
       index: true, // often searched by phone
     },
