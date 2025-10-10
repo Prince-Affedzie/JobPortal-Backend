@@ -1,7 +1,7 @@
 const express = require("express")
 const userRouter = express.Router()
 const {signUp,login,logout,onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
-    markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword} = require('../Controllers/UserContoller')
+    markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword,updatePushToken} = require('../Controllers/UserContoller')
 const {generatePortfolioUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
 const {validateInput} = require('../Validators/ValidatePassword')
@@ -33,6 +33,9 @@ userRouter.post('/user/upload_portfolio',verify_token,generatePortfolioUploadURL
 userRouter.delete('/delete/notification/:Id',verify_token,deleteNotification)
 userRouter.post('/delete/bulk_notification',verify_token,deleteBulkNotification)
 //,deleteBulkNotification,deleteNotification
+
+// Push Token Settings
+userRouter.post('/user/push-token', verify_token,updatePushToken )
 
 
 module.exports = {userRouter}

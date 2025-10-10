@@ -55,7 +55,6 @@ app.use(cors({
 }))
 
  
- 
 const server = http.createServer(app)
 
 mongoose.connect(process.env.DB_URL,

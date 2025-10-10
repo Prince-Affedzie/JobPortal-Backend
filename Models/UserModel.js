@@ -147,8 +147,13 @@ const userSchema = new Schema(
           default: Date.now,
           index: true,
         },
+       
       },
     ],
+     pushToken:{
+          type: String,
+          default: null
+    },
   },
   { timestamps: true }
 );

@@ -1,5 +1,7 @@
 // src/services/notificationService.js
 const {NotificationModel} = require('../Models/NotificationModel');
+const {sendPushNotification} = require('./expo-server-notification-sdk')
+const { UserModel } = require('../Models/UserModel');
 
 class NotificationService {
   constructor(socketIO = null) {
@@ -16,6 +18,10 @@ class NotificationService {
    */
   async sendNotification({ userId, message, title }) {
     try {
+
+       const user = await UserModel.findById(userId).select('pushToken');
+       const pushToken = user?.pushToken;
+
       const notification = await NotificationModel.create({
         user: userId,
         message,
@@ -28,6 +34,13 @@ class NotificationService {
         console.log(`Socket notification sent to user ${userId}`);
       }
 
+      if (pushToken) {
+        await sendPushNotification(pushToken, title, message);
+        console.log(`Push notification sent to user ${userId}`);
+      } else {
+        console.log(`No push token found for user ${userId}, skipping push notification`);
+      }
+      
       await notification.save();
       return notification;
     } catch (error) {

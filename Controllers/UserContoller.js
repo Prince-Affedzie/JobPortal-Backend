@@ -59,7 +59,7 @@ const signUp = async(req,res)=>{
 
 const login = async(req,res)=>{
     const {email,password} = req.body
-   
+   console.log("Logging In")
 
     try{
         if (!email || !password){
@@ -426,10 +426,26 @@ const chat = async (req, res) => {
       res.status(500).json({message:"Internal Server Error"})
     }
   }
+
+
+  const updatePushToken = async(req,res)=>{
+    try{
+      const {id} = req.user
+      const {token} = req.body
+      const user  = await UserModel.findById(id)
+      user.pushToken = token
+      await user.save()
+      res.status(200).json({message:'Push Token Updated Successfully'})
+
+    }catch(err){
+      console.log(err)
+      res.status(500).json({message:"Internal Server Error"})
+    }
+  }
   
 
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
 module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,  requestPasswordReset, resetPassword,deleteBulkNotification,
-    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, }
+    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, }
