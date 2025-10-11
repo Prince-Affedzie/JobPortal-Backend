@@ -96,11 +96,14 @@ const acceptBid = async (req, res) => {
             return res.status(400).json({ message: "Can not re-assign Task." });
         }
 
+      
+
         if (miniTask.employer._id.toString() !== id) {
             return res.status(403).json({ message: "Not authorized to accept bids on this task" });
         }
 
         const bid = miniTask.bids.id(bidId);
+        const isAlreadyAssigned = miniTask.assignedTo !== null
         if (!bid) return res.status(404).json({ message: "Bid not found" });
 
         miniTask.assignedTo = bid.bidder;
@@ -112,6 +115,15 @@ const acceptBid = async (req, res) => {
         miniTask.bids.forEach(b => {
             if (b._id.toString() !== bidId) b.status = "Rejected";
         });
+
+         if(isAlreadyAssigned){
+             await Payment.findOneAndUpdate(
+                {taskId:taskId},
+                {$set:{beneficiary : bid.bidder }}
+
+            )
+        }
+
 
         let room = await ConversationRoom.findOne({
             participants: { $all: [id, bid.bidder], $size: 2 },
@@ -147,6 +159,7 @@ const assignMiniTask = async (req, res) => {
         const { id } = req.user;
         const { taskId, applicantId } = req.params;
         const miniTask = await MiniTask.findById(taskId).populate('employer','name');
+        const isAlreadyAssigned = miniTask.assignedTo !== null
         const notificationService = req.app.get('notificationService');
 
         if (!miniTask || miniTask.status === "In-progress" || miniTask.status === "Completed") {
@@ -157,6 +170,14 @@ const assignMiniTask = async (req, res) => {
         miniTask.status = "Assigned";
         miniTask.finalAmount = miniTask.budget;
         miniTask.funded = true;
+
+        if(isAlreadyAssigned){
+             await Payment.findOneAndUpdate(
+                {taskId:taskId},
+                {$set:{beneficiary :applicantId }}
+
+            )
+        }
 
         let room = await ConversationRoom.findOne({
             participants: { $all: [id, applicantId], $size: 2 },
