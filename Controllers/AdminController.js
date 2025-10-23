@@ -458,15 +458,24 @@ const getSingleMinitask = async(req,res)=>{
 const modifyMiniTaskStatus =async(req,res)=>{
     try{
         const {Id} = req.params
-       
         const {status} =  req.body
+        const notificationService = req.app.get("notificationService");
+       
         const task = await MiniTask.findById(Id)
+        const previousStatus = task.status
         if(!task){
             res.status.status(400).json({message:'Task Not Found'})
         } 
         task.status = status
         await task.save()
-        res.status(200).json({message:"Task Updated Successfully"})
+        
+        await notificationService.sendAdminTaskStatusUpdateNotification({
+              clientId: task.employer,
+              taskTitle: task.title,
+              oldStatus: previousStatus,
+              newStatus: task.status,
+            });
+          res.status(200).json({message:"Task Updated Successfully"})
 
     }catch(err){
         console.log(err)

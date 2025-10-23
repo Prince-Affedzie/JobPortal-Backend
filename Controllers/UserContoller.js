@@ -5,6 +5,7 @@ const  cloudinary =require('../Config/Cloudinary')
 const streamifier = require('streamifier');
 const validator = require("validator")
 const CloudinaryFileUploadService  = require('../Services/cloudinaryFileUpload')
+const {getUploadURL, getPublicURL} = require('../Services/aws_S3_file_Handling')
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
@@ -157,27 +158,14 @@ const logout =async(req,res)=>{
 const editProfile = async(req,res)=>{
     try{
          
-        const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
-       
+        const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
+       console.log(req.body)
        
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
             return res.staus(404).json("Account Doesn't Exist")
         }
-        if (req.files) {
-       const { profileImage, idCardImage } = req.files;
-       
-      if (profileImage && profileImage[0]) {
-          user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
-    }
-      if (idCardImage && idCardImage[0]) {
-        user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
-      }
-      
-     await user.save();
-    }
-
         
         user.email = email || user.email
         user.phone = phone || user.phone
@@ -187,7 +175,7 @@ const editProfile = async(req,res)=>{
         user.Bio = Bio || user.Bio
         user.location = location || user.location
         user.workPortfolio = workPortfolio ||  user.workPortfolio
-
+        user.profileImage =profileImage || user.profileImage
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})
 
@@ -202,7 +190,7 @@ const editProfile = async(req,res)=>{
 const onboarding = async(req,res)=>{
     try{
          
-        const {phone,skills,education,workExperience,workPortfolio,Bio,location,} = req.body
+        const {phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
         const {id} = req.user
         const user = await UserModel.findById(id)
 
@@ -214,18 +202,7 @@ const onboarding = async(req,res)=>{
           return res.status(403).json({message:"Phone Number Already Exist"})
         }
 
-        if (req.files) {
-       const { profileImage, idCardImage } = req.files;
-       
-      if (profileImage && profileImage[0]) {
-          user.profileImage = await CloudinaryFileUploadService.uploadProfileImage(profileImage[0].buffer);
-    }
-      if (idCardImage && idCardImage[0]) {
-        user.idCard = await CloudinaryFileUploadService.uploadIDCard(idCardImage[0].buffer);
-      }
-      
-     await user.save();
-    }
+    
 
         user.phone = phone || user.phone
         user.skills = skills || user.skills
@@ -234,6 +211,7 @@ const onboarding = async(req,res)=>{
         user.Bio = Bio || user.Bio
         user.location = location || user.location
         user.workPortfolio = workPortfolio ||  user.workPortfolio
+        user.profileImage = profileImage || user.profileImage
 
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})

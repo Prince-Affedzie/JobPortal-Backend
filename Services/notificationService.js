@@ -316,6 +316,47 @@ async sendSubmissionRejectedNotification({ freelancerId, taskTitle, clientName, 
   });
 }
 
+
+
+/**
+ * Sends notification when admin modifies client task status
+ */
+async sendAdminTaskStatusUpdateNotification({ clientId, taskTitle, oldStatus, newStatus, adminName, reason = null }) {
+  const statusMessages = {
+    'Pending_to_Open': `Your task "${taskTitle}" has been approved by an admin and is now live on the platform.`,
+    'Pending_to_Rejected': `Your task "${taskTitle}" has been reviewed and requires modifications before it can be published.`,
+    'active_to_paused': `Your task "${taskTitle}" has been temporarily paused by an admin.`,
+    'paused_to_active': `Your task "${taskTitle}" has been reactivated and is now visible to taskers.`,
+    'active_to_cancelled': `Your task "${taskTitle}" has been cancelled by an admin.`
+  };
+
+  const statusKey = `${oldStatus}_to_${newStatus}`;
+  const defaultMessage = `The status of your task "${taskTitle}" has been updated from ${oldStatus} to ${newStatus} by an admin.`;
+
+  let message = statusMessages[statusKey] || defaultMessage;
+  
+  if (reason) {
+    message += ` Reason: ${reason}`;
+  }
+
+  return this.sendNotification({
+    userId: clientId,
+    message: message,
+    title: "🔧 Task Status Updated"
+  });
+}
+
+
+
+
+async sendCuratedInvitationNotification({ tasker, taskId, taskTitle, clientName }) {
+  return this.sendNotification({
+    userId: tasker,
+    message: `You've been selected for our curated pool for "${taskTitle}" by ${clientName}. This is a premium opportunity with higher visibility.`,
+    title: "🎯 You're in the Curated Pool!"
+  });
+}
+
 }
 
 module.exports = NotificationService;

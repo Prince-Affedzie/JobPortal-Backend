@@ -10,7 +10,7 @@ const postMiniTask = async (req, res) => {
     try {
         console.log("Executing")
         const { id } = req.user;
-        const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired } = req.body;
+        const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired,requirements } = req.body;
         console.log(req.body)
         if (!title || !description  || !deadline || !locationType) {
             return res.status(400).json({ error: "All required fields must be provided" });
@@ -28,6 +28,7 @@ const postMiniTask = async (req, res) => {
             category,
             subcategory,
             skillsRequired,
+            requirements,
         });
 
         
@@ -314,7 +315,7 @@ const markTaskDoneByClient = async (req, res) => {
   try {
     const { Id } = req.params;
     const { id } = req.user;
-     const notificationService = req.app.get('notificationService');
+    const notificationService = req.app.get('notificationService');
 
     const task = await MiniTask.findById(Id).populate('employer','_id name');
     if (!task) return res.status(404).json({ message: "Task not found" });

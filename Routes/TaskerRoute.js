@@ -15,6 +15,10 @@ const {
     markTaskDoneByTasker,
     unmarkTaskDoneByTasker,
     viewEarnings,
+    updateAvailability ,
+    addPaymentMethod,
+    modifyPaymentMethod,
+    deletePaymentMethod,
 } = require("../Controllers/TaskerController.js");
 
 // Job application routes
@@ -38,5 +42,13 @@ taskerRouter.put('/h1/v2/remove_mini_task_from_dashboard', verify_token, removeA
 
 //earnings
 taskerRouter.get("/h1/v2/view_all_earnings",verify_token,viewEarnings)
+
+//Availability
+taskerRouter.patch("/h1/v2/update_availability",verify_token,updateAvailability )
+
+// Payment Method
+taskerRouter.post("/h1/v2/add_payment_method",verify_token,addPaymentMethod)
+taskerRouter.put("/h1/v2/update_payment_method/:methodId",verify_token, modifyPaymentMethod)
+taskerRouter.delete("/h1/v2/delete_payment_method/:methodId",verify_token, deletePaymentMethod)
 
 module.exports = { taskerRouter };

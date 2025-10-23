@@ -402,6 +402,8 @@ const markTaskDoneByTasker = async (req, res) => {
       taskerId: task.assignedTo,
       taskTitle: task.title
     });
+    }else{
+        task.status = "Review"
     }
 
     await task.save();
@@ -464,6 +466,148 @@ const viewEarnings = async(req,res)=>{
 }
 
 
+
+const  updateAvailability = async(req, res) =>{
+  try {
+    const { id } = req.user;
+    const { status, nextAvailableAt } = req.body;
+
+    const allowedStatuses = ["available", "busy", "away", "offline", "suspended"];
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      id,
+      {
+        "availability.status": status,
+        "availability.nextAvailableAt": nextAvailableAt,
+        "availability.lastActiveAt": new Date(),
+      },
+      { new: true }
+    );
+
+    res.status(200).json({message:"Availabiity Updated Successfully"});
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update availability", error: err.message });
+  }
+}
+
+
+
+const addPaymentMethod = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const {
+      type,
+      provider,
+      accountName,
+      accountNumber,
+      countryCode,
+      isDefault,
+    } = req.body;
+
+    const user = await UserModel.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // If new method is default, unset previous defaults
+    if (isDefault) {
+      user.paymentMethods.forEach((pm) => (pm.isDefault = false));
+    }
+
+    user.paymentMethods.push({
+      type,
+      provider,
+      accountName,
+      accountNumber,
+      countryCode: countryCode || "GH",
+      isDefault,
+    });
+
+    await user.save();
+    res.status(200).json({ message: "Payment method added"});
+  } catch (err) {
+    console.error("Error adding payment method:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const modifyPaymentMethod = async (req, res) => {
+  try {
+    const { id } = req.user; 
+    const { methodId } = req.params;
+    const updates = req.body;
+    console.log("I'm receving a request")
+    console.log(req.params)
+
+    const user = await UserModel.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Find the specific payment method
+    const methodIndex = user.paymentMethods.findIndex(
+      (pm) => pm._id.toString() === methodId
+    );
+
+    if (methodIndex === -1)
+      return res.status(404).json({ message: "Payment method not found" });
+
+    // Handle "isDefault" switch logic
+    if (updates.isDefault === true) {
+      user.paymentMethods.forEach((pm, idx) => {
+        pm.isDefault = idx === methodIndex;
+      });
+    }
+
+    // Update allowed fields safely
+    const allowedFields = [
+      "provider",
+      "accountName",
+      "accountNumber",
+      "countryCode",
+      "isDefault",
+      "verified",
+    ];
+
+    for (const key of allowedFields) {
+      if (updates[key] !== undefined) {
+        user.paymentMethods[methodIndex][key] = updates[key];
+      }
+    }
+
+    await user.save();
+    return res.status(200).json({
+      message: "Payment method updated successfully",
+      paymentMethods: user.paymentMethods,
+    });
+  } catch (err) {
+    console.error("Error modifying payment method:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+const deletePaymentMethod = async (req, res) => {
+  try {
+    const {id} = req.user
+    const {methodId } = req.params;
+    const user = await UserModel.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.paymentMethods = user.paymentMethods.filter(
+      (pm) => pm._id.toString() !== methodId
+    );
+
+    await user.save();
+    res.json({ message: "Payment method removed", user });
+  } catch (err) {
+    console.error("Error deleting payment method:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
 module.exports = {
     applyToJob,
     viewAllApplications,
@@ -477,4 +621,8 @@ module.exports = {
     markTaskDoneByTasker,
     unmarkTaskDoneByTasker,
     viewEarnings,
+    updateAvailability ,
+    addPaymentMethod,
+    modifyPaymentMethod,
+    deletePaymentMethod,
 };

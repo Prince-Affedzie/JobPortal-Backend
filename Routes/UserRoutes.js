@@ -2,7 +2,7 @@ const express = require("express")
 const userRouter = express.Router()
 const {signUp,login,logout,onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
     markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword,updatePushToken} = require('../Controllers/UserContoller')
-const {generatePortfolioUploadURL} = require('../Services/portofolioFileUpload')
+const {generatePortfolioUploadURL,generateProfileImageUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
 const {validateInput} = require('../Validators/ValidatePassword')
 const {verify_token} = require("../MiddleWare/VerifyToken")
@@ -22,7 +22,7 @@ userRouter.put("/user/onboarding",verify_token,upload.fields([
   { name: 'idCardImage', maxCount: 1 }
 ]),onboarding)
 
-userRouter.put("/user/image_profile",verify_token,upload.single("profileImage"),handleImageUpdate)
+userRouter.post("/user/upload-profile-image",verify_token,generateProfileImageUploadURL)
 userRouter.get("/user/view_profile",verify_token,viewProfile)
 userRouter.post('/user/athenticate',verify_token,chat )
 userRouter.post('/notifications',verify_token,createNotification)

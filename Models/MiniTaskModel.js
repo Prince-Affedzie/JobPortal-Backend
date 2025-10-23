@@ -41,7 +41,11 @@ const miniTaskSchema = new Schema({
     },
     subcategory:{ type: String },
     skillsRequired: [{ type: String }],
-    
+
+    requirements: [{ 
+        type: String
+    }],
+ 
     address:{
         region:String,
         city:String,
@@ -51,6 +55,12 @@ const miniTaskSchema = new Schema({
     applicants: [
         { type: mongoose.Schema.Types.ObjectId, ref: "User", default:[] }
     ],
+
+     curatedPool: [{
+      tasker: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      addedAt: { type: Date, default: Date.now },
+      status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" }
+    }],
 
     bids: [bidSchema], 
 

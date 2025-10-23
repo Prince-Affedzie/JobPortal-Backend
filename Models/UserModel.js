@@ -150,10 +150,74 @@ const userSchema = new Schema(
        
       },
     ],
+  availability: {
+  status: {
+    type: String,
+    enum: ["available", "busy", "away", "offline", "suspended"],
+    default: "available",
+    index: true, 
+  },
+  lastActiveAt: {
+    type: Date,
+    default: Date.now, 
+    index: true,
+  },
+  nextAvailableAt: {
+    type: Date,
+    default: null, 
+  },
+  autoPause: {
+    type: Boolean,
+    default: false, 
+  },
+},
+
+paymentMethods: [
+  {
+    type: {
+      type: String,
+      enum: ["mobile_money", "bank_account", "card"],
+      required: true,
+      index: true,
+    },
+    provider: {
+      type: String,
+      default: null, // e.g., "MTN", "AirtelTigo", "Visa", "MasterCard"
+    },
+    accountName: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    accountNumber: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    countryCode: {
+      type: String,
+      default: "GH", // useful if expanding beyond Ghana
+    },
+    isDefault: {
+      type: Boolean,
+      default: false, // easily mark default payment method
+      index: true,
+    },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
      pushToken:{
           type: String,
           default: null
     },
+
   },
   { timestamps: true }
 );
