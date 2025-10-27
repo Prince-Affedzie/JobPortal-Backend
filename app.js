@@ -29,6 +29,10 @@ const {ratingRouter} = require('./Routes/RatingRoute')
 const {paymentRouter} = require('./Routes/PaymentRoute')
 const {adminUsersMonitoringRoute} = require('./Routes/AdminUserMonitoringRoute')
 const {twilioRouter} = require('./Controllers/twilioResetController')
+const {clientServiceRouter} = require('./AgencyBaseRoutes.js/clientServiceRoute')
+const  {geocodeAddress} = require('./Utils/geoService')
+
+
 
 
 const {authenticateSocketConnection} = require('./Validators/authenticateSocketConnection')
@@ -54,6 +58,8 @@ app.use(cors({
 
 }))
 
+
+
  
 const server = http.createServer(app)
 
@@ -71,7 +77,7 @@ mongoose.connect(process.env.DB_URL,
 )
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
-      
+         
          
          console.log("Listening on Port 5000")
         })
@@ -130,6 +136,7 @@ app.use("/api",paymentRouter)
 app.use("/api",AdminMinitaskRouter)
 app.use("/api",adminUsersMonitoringRoute)
 app.use("/api",twilioRouter)
+app.use("/api",clientServiceRouter)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

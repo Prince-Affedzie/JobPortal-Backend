@@ -95,6 +95,53 @@ const viewApplication = async (req, res) => {
     }
 };
 
+const getNearbyTasks = async (req, res) => {
+  try {
+    const { id } = req.user; 
+    const { maxDistance = 10 } = req.query; 
+
+    const tasker = await UserModel.findById(id);
+    if (!tasker || !tasker.location?.coordinates) {
+      return res.status(400).json({ message: "Tasker location not found" });
+    }
+
+    const [longitude, latitude] = tasker.location.coordinates;
+
+    const nearbyTasks = await MiniTask.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          spherical: true,
+          maxDistance: parseFloat(maxDistance) * 1000, // Convert km to meters
+          query: {
+            status: { $in: ["Open"] },
+            "address.coordinates": { $exists: true }
+          }
+        }
+      },
+      {
+        $sort: { distance: 1 }
+      },
+      {
+        $limit: 20 
+      }
+    ]);
+
+   
+    const tasksWithKm = nearbyTasks.map(task => ({
+      ...task,
+      distance: parseFloat((task.distance / 1000).toFixed(1)) 
+    }));
+
+    
+    return res.status(200).json(tasksWithKm);
+  } catch (error) {
+    console.error("Error finding nearby tasks:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 const applyOrBidMiniTask = async (req, res) => {
     try {
         const { id } = req.user;
@@ -625,4 +672,5 @@ module.exports = {
     addPaymentMethod,
     modifyPaymentMethod,
     deletePaymentMethod,
+    getNearbyTasks,
 };

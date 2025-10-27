@@ -7,6 +7,7 @@ const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfil
     getAllUsers,getSingleUser,removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,upDateJob,getAllEmployerProfiles,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
     modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,getAllTaskers,
+    getTaskerDetails,updateTaskerStatus,
 } = require('../Controllers/AdminController')
 
 adminRouter.post('/admin/signUp',adminSignup)
@@ -38,5 +39,6 @@ adminRouter.get('/admin/all_alerts',verify_token,fetchAlerts)
 adminRouter.put('/admin/alerts/mark-all-read',verify_token,markAlertsAsRead)
 adminRouter.put('/admin/alerts/:id/read',verify_token,markAlertAsRead)
 adminRouter.get('/admin/get_all_taskers',verify_token,getAllTaskers)
-
+adminRouter.get('/admin/get_tasker_info/:taskerId',verify_token,getTaskerDetails)
+adminRouter.put('/admin/update_tasker_status/:taskerId',verify_token,updateTaskerStatus)
 module.exports = {adminRouter}

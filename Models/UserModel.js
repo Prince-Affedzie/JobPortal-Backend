@@ -73,6 +73,12 @@ const userSchema = new Schema(
       city: { type: String, index: true },
       town: String,
       street: String,
+      latitude: Number,
+      longitude: Number,
+      coordinates: {
+       type: [Number], 
+       index: "2dsphere",
+  },
     },
     appliedJobs: [
       {

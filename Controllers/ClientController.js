@@ -5,6 +5,7 @@ const ConversationRoom = require('../Models/ConversationRoom');
 const {Payment} = require('../Models/PaymentModel')
 const { processEvent } = require('../Services/adminEventService');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
+const {geocodeAddress} = require('../Utils/geoService')
 
 const postMiniTask = async (req, res) => {
     try {
@@ -16,6 +17,26 @@ const postMiniTask = async (req, res) => {
             return res.status(400).json({ error: "All required fields must be provided" });
         }
 
+        let geoData = {
+         latitude: null,
+         longitude: null,
+         coordinates: [],
+        };
+
+         if (address && (address.city || address.region || address.suburb)) {
+         const addressString = `${address.suburb || ""}, ${address.city || ""}, ${address.region || ""}`;
+         const geo = await geocodeAddress(addressString);
+
+        if (geo) {
+          geoData = {
+           latitude: geo.lat,
+           longitude: geo.lon,
+           coordinates: [parseFloat(geo.lon), parseFloat(geo.lat)], // GeoJSON standard
+         };
+       }
+      }
+        
+
         const newTask = new MiniTask({
             title,
             description,
@@ -23,7 +44,14 @@ const postMiniTask = async (req, res) => {
             biddingType,
             budget,
             deadline,
-            address,
+            address: {
+              region: address?.region || null,
+               city: address?.city || null,
+               suburb: address?.suburb || null,
+               latitude: geoData.latitude,
+               longitude: geoData.longitude,
+               coordinates: geoData.coordinates,
+           },
             locationType,
             category,
             subcategory,
@@ -250,49 +278,65 @@ const getMicroTaskApplicants = async (req, res) => {
 };
 
 const editMiniTask = async (req, res) => {
-    try {
-        const { Id } = req.params;
-        const { body } = req.body;
-        const { status } = body;
-        const task = await MiniTask.findById(Id);
+  try {
+    const { Id } = req.params;
+    const { body } = req.body;
+    const { status, address } = body;
 
-        if (!task) {
-            return res.status(400).json({ message: "No Task Found" });
-        }
-
-        if (status && status !== task.status) {
-            if (status === "Closed") {
-                const canClose =
-                    task.status === "Completed" ||
-                    (task.status === "Open" && (!task.assignedTo || task.assignedTo === null));
-
-                if (!canClose) {
-                    return res.status(400).json({
-                        message: "You can only close a task that is completed or open without any assigned freelancer.",
-                    });
-                }
-            } else if (status === "Open") {
-                if (task.status !== "Closed") {
-                    return res.status(400).json({
-                        message: "You can only reopen a task that is currently closed.",
-                    });
-                }
-            } else {
-                return res.status(400).json({
-                    message: "Invalid status transition.",
-                });
-            }
-        }
-
-        Object.assign(task, body);
-        await task.save();
-
-        return res.status(200).json({ message: "Mini Task Updated Successfully", task });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Internal Server Error" });
+    const task = await MiniTask.findById(Id);
+    if (!task) {
+      return res.status(404).json({ message: "No Task Found" });
     }
+
+    if (status && status !== task.status) {
+      if (status === "Closed") {
+        const canClose =
+          task.status === "Completed" ||
+          (task.status === "Open" && (!task.assignedTo || task.assignedTo === null));
+
+        if (!canClose) {
+          return res.status(400).json({
+            message:
+              "You can only close a task that is completed or open without any assigned freelancer.",
+          });
+        }
+      } else if (status === "Open") {
+        if (task.status !== "Closed") {
+          return res.status(400).json({
+            message: "You can only reopen a task that is currently closed.",
+          });
+        }
+      } else {
+        return res.status(400).json({ message: "Invalid status transition." });
+      }
+    }
+
+    if (address) {
+      const addressString = `${address.suburb || ""}, ${address.city || ""}, ${address.region || ""}`;
+      const geo = await geocodeAddress(addressString);
+      console.log(geo)
+
+      
+      if (geo && geo.lat && geo.lon && !isNaN(geo.lat) && !isNaN(geo.lon)) {
+        body.address.latitude = geo.lat;
+        body.address.longitude = geo.lon;
+        body.address.coordinates = [geo.lon, geo.lat];
+      } else {
+        console.warn(" Invalid geocode result. Skipping coordinate update for:", addressString);
+        delete body.address.coordinates;
+      }
+    }
+
+    Object.assign(task, body);
+    await task.save();
+
+    return res.status(200).json({ message: "Mini Task Updated Successfully", task });
+  } catch (err) {
+    console.error("editMiniTask Error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 };
+
 
 const deleteMiniTask = async (req, res) => {
     try {

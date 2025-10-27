@@ -4,6 +4,7 @@ const { upload } = require('../Config/Mutler.js');
 const { verify_token } = require('../MiddleWare/VerifyToken.js');
 const {
     applyToJob,
+    getNearbyTasks,
     applyOrBidMiniTask,
     acceptMiniTaskAssignment,
     rejectMiniTaskAssignment,
@@ -24,6 +25,7 @@ const {
 // Job application routes
 taskerRouter.post('/h1/v2/apply/:Id', verify_token, upload.single("resume"), applyToJob);
 taskerRouter.post('/h1/v2/mini_task/apply/:Id', verify_token, applyOrBidMiniTask);
+taskerRouter.get('/h1/v2/get_nearby_tasks',verify_token,getNearbyTasks)
 
 // Task assignment acceptance/rejection
 taskerRouter.put("/h1/v2/accept_task_assignment/:Id", verify_token, acceptMiniTaskAssignment);

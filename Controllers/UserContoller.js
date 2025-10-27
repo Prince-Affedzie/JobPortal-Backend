@@ -11,6 +11,7 @@ const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
 const {sendPasswordResetEmail} = require("../Services/emailService")
 const {processEvent} = require('../Services/adminEventService')
+const {geocodeAddress} = require('../Utils/geoService')
 const fs = require('fs');
 const path = require('path');
 const io = require('../app')
@@ -159,12 +160,31 @@ const editProfile = async(req,res)=>{
     try{
          
         const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
-       console.log(req.body)
+        console.log(req.body)
        
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
             return res.staus(404).json("Account Doesn't Exist")
+        }
+
+        if(location){
+          const addressString = `${location.street || ""}, ${location.town || ""}, ${
+          location.city || ""
+         }, ${location.region || ""}`;
+         const geo = await geocodeAddress(addressString);
+
+        if (geo) {
+         user.location = {
+          ...location,
+           latitude: geo.latitude,
+           longitude: geo.longitude,
+          coordinates: [geo.longitude, geo.latitude], 
+          };
+       }else{
+             user.location = location || user.location
+       }
+
         }
         
         user.email = email || user.email
@@ -173,7 +193,6 @@ const editProfile = async(req,res)=>{
         user.education = education || user.education
         user.workExperience = workExperience || user.workExperience
         user.Bio = Bio || user.Bio
-        user.location = location || user.location
         user.workPortfolio = workPortfolio ||  user.workPortfolio
         user.profileImage =profileImage || user.profileImage
         await user.save()
@@ -190,7 +209,7 @@ const editProfile = async(req,res)=>{
 const onboarding = async(req,res)=>{
     try{
          
-        const {phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
+        const {phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage,idCard} = req.body
         const {id} = req.user
         const user = await UserModel.findById(id)
 
@@ -201,6 +220,12 @@ const onboarding = async(req,res)=>{
         if(phoneExist){
           return res.status(403).json({message:"Phone Number Already Exist"})
         }
+        const addressString = `${location.street || ""}, ${location.town || ""}, ${
+          location.city || ""
+         }, ${location.region || ""}`;
+
+
+         const geo = await geocodeAddress(addressString);
 
     
 
@@ -209,10 +234,20 @@ const onboarding = async(req,res)=>{
         user.education = education || user.education
         user.workExperience = workExperience || user.workExperience
         user.Bio = Bio || user.Bio
-        user.location = location || user.location
         user.workPortfolio = workPortfolio ||  user.workPortfolio
         user.profileImage = profileImage || user.profileImage
+        user.idCard = idCard || user.idCard
 
+        if (geo) {
+         user.location = {
+          ...location,
+           latitude: geo.latitude,
+           longitude: geo.longitude,
+            coordinates: [geo.longitude, geo.latitude], 
+          };
+       }else{
+             user.location = location || user.location
+       }
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})
 

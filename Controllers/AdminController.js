@@ -587,6 +587,40 @@ const getAllTaskers = async(req,res)=>{
 }
 
 
+const getTaskerDetails = async(req,res)=>{
+     try{
+        const {taskerId} = req.params
+
+        const user = await UserModel.findById(taskerId).populate('appliedMiniTasks')
+        if(!user){
+            return res.status(400).json({message:'User not Found'})
+        }
+        res.status(200).json(user)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const  updateTaskerStatus = async(req,res)=>{
+    try{
+        const {taskerId} = req.params
+        const update = req.body
+        const tasker = await UserModel.findById(taskerId)
+        if(!tasker){
+            return res.status(404).json({message:'Tasker Not Found'})
+        }
+        Object.assign(tasker,update)
+        await tasker.save()
+        res.status(200).json({message:"Tasker updated successfully"})
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+
 
 
 
@@ -595,4 +629,5 @@ const getAllTaskers = async(req,res)=>{
 module.exports = {adminSignup,adminLogin,adminLogout,adminEditProfile, adminProfile,adminAddUser,modifyUserInfo,getAllEmployerProfiles,
     getAllUsers,getSingleUser, removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,removeJob,upDateJob,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
-    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,getAllTaskers }
+    modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,
+    getAllTaskers,getTaskerDetails,updateTaskerStatus }

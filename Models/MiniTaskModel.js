@@ -49,8 +49,13 @@ const miniTaskSchema = new Schema({
     address:{
         region:String,
         city:String,
-        suburb:String
-    },
+        suburb:String,
+        latitude: Number,
+        longitude: Number,
+        coordinates: {
+        type: [Number], 
+        index: "2dsphere",
+    }},
 
     applicants: [
         { type: mongoose.Schema.Types.ObjectId, ref: "User", default:[] }
@@ -78,7 +83,7 @@ const miniTaskSchema = new Schema({
     verificationRequired: { type: Boolean, default: false },
     proofOfCompletion: { type: String, default: null },
 
-    //  Mutual completion tracking
+   
     markedDoneByEmployer: { type: Boolean, default: false },
     employerDoneAt: { type: Date, default: null },
 
