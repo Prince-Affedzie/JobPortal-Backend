@@ -351,8 +351,8 @@ const chat = async (req, res) => {
         id: user._id.toString(),
         name: user.name,
         image: user.profileImage || 'https://getstream.io/random_png/',
-        ...(targetUserId && { targetUserId }), // 👈 optional: only include if provided
-        ...(targetUserData && { targetUserData }), // optional: detailed info about target
+        ...(targetUserId && { targetUserId }), 
+        ...(targetUserData && { targetUserData }), 
       }
 
       return res.status(200).json({ token,userData});

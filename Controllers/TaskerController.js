@@ -153,6 +153,12 @@ const applyOrBidMiniTask = async (req, res) => {
         if (!miniTask || !user) {
             return res.status(404).json({ message: "Task not found" });
         }
+        if(!user.isVerified){
+            return res.status(403).json(
+              { message: "Sorry, you can't apply to tasks until you're verified. Verification typically takes 24 hours." });
+        }
+
+
 
         if (user._id.toString() === miniTask.employer._id.toString()) {
             return res.status(400).json({ message: "You cannot apply/bid on your own task" });
@@ -504,7 +510,7 @@ const viewEarnings = async(req,res)=>{
         .populate('initiator', 'name profileImage')
         .sort({ createdAt: -1 })
         .exec();
-        console.log(earnings)
+       
         res.status(200).json(earnings)
 
     }catch(err){
@@ -584,9 +590,7 @@ const modifyPaymentMethod = async (req, res) => {
     const { id } = req.user; 
     const { methodId } = req.params;
     const updates = req.body;
-    console.log("I'm receving a request")
-    console.log(req.params)
-
+    
     const user = await UserModel.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
