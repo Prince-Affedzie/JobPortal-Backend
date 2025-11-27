@@ -5,19 +5,7 @@ const axios = require('axios');
 const initializePayment = async (req, res) => {
   const { v4: uuidv4 } = await import('uuid');
   try {
-    const { id } = req.user;
-    const { taskId, beneficiary, amount } = req.body;
-
     const transactionRef = uuidv4();
-
-    await Payment.create({
-      taskId,
-      initiator: id,
-      beneficiary,
-      amount,
-      transactionRef,
-    });
-
     res.status(200).json({ reference: transactionRef });
   } catch (err) {
     console.error(err);
@@ -28,7 +16,9 @@ const initializePayment = async (req, res) => {
 
 const verifyPayment = async (req, res) => {
   try {
-    const { reference } = req.params;
+     const { id } = req.user;
+     const { reference } = req.params;
+     const { taskId, beneficiary, amount } = req.body;
 
     const verifyRes = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
@@ -42,17 +32,19 @@ const verifyPayment = async (req, res) => {
     const data = verifyRes.data.data;
 
     if (data.status === 'success') {
-      await Payment.findOneAndUpdate(
-        { transactionRef: reference },
-        {
-          status: 'in_escrow',
-          paymentMethod: data.channel,
-          paymentChannel: data.authorization?.bank || null,
-          mobileMoneyNumber: data.authorization?.mobile_money_number || null,
-          fundedAt: new Date(),
-        },
-        { new: true }
-      );
+      
+      await Payment.create({
+      taskId,
+      initiator: id,
+      beneficiary,
+      amount,
+      transactionRef: reference,
+      status: 'in_escrow',
+      paymentMethod: data.channel,
+      paymentChannel: data.authorization?.bank || null,
+      mobileMoneyNumber: data.authorization?.mobile_money_number || null,
+      fundedAt: new Date(),
+      });
     }
 
     res.status(200).json(data);
@@ -65,11 +57,19 @@ const verifyPayment = async (req, res) => {
 const releasePayment = async (req, res) => {
   try {
     const { reference } = req.params;
-    const payment = await Payment.findOne({ transactionRef: reference });
+    
+    const payment = await Payment.findOne({ transactionRef: reference })
+    .populate('beneficiary','paystackRecipientCode')
+    .populate('taskId','status');
 
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
+
+    if(payment.taskId.status !== "Completed"){
+       return res.status(400).json({ message: 'This task must be completed before payment is released' });
+    }
+   
 
     if (payment.status !== 'in_escrow') {
       return res
@@ -78,19 +78,18 @@ const releasePayment = async (req, res) => {
     }
 
     // Replace this with your stored beneficiary Paystack Recipient Code
-    const recipientCode = payment.beneficiaryRecipientCode;
+    const recipientCode = payment.beneficiary.paystackRecipientCode;
     if (!recipientCode) {
       return res
         .status(400)
         .json({ message: 'No Paystack recipient linked to beneficiary' });
     }
 
-    // Transfer funds from your Paystack balance to the beneficiary
     const transferRes = await axios.post(
       'https://api.paystack.co/transfer',
       {
         source: 'balance',
-        amount: payment.amount, // convert to kobo/pesewas
+        amount: payment.amount, 
         recipient: recipientCode,
         reason: `Escrow release for task ${payment.taskId}`,
       },
@@ -119,7 +118,7 @@ const releasePayment = async (req, res) => {
   }
 };
 
-// =============== REFUND PAYMENT ===================
+
 const refundPayment = async (req, res) => {
   try {
     const { reference } = req.params;
@@ -161,9 +160,72 @@ const refundPayment = async (req, res) => {
   }
 };
 
+
+const ensureRecipientForBeneficiary = async (beneficiary, paymentMethod) => {
+  if (!beneficiary) throw new Error("No beneficiary provided");
+
+  if (beneficiary.paystackRecipientCode) {
+    return beneficiary.paystackRecipientCode;
+  }
+
+  console.log('Payment Method:', paymentMethod);
+
+  // Convert phone to international format if necessary
+  let phone = paymentMethod.accountNumber;
+  if (phone.startsWith("0")) {
+    phone = "233" + phone.substring(1);
+  }
+
+  // Map your provider IDs to Paystack bank codes
+  const providerToBankCode = {
+    'mtn_momo': 'MTN',        // Correct code for MTN Mobile Money
+    'vodafone_cash': 'VOD',   // Correct code for Vodafone Cash
+    'airtel_tigo': 'ATL',     // Correct code for AirtelTigo Money
+    'bank_transfer': ''       // This might need different handling
+  };
+
+  const bankCode = providerToBankCode[paymentMethod.provider];
+  
+  if (!bankCode && paymentMethod.provider !== 'bank_transfer') {
+    throw new Error(`Unsupported payment provider: ${paymentMethod.provider}`);
+  }
+
+  const payload = {
+    type: "mobile_money",
+    name: paymentMethod.accountName.trim(), // Added trim() to remove extra spaces
+    currency: "GHS",
+    account_number: paymentMethod.accountNumber,
+    bank_code: bankCode,
+  };
+
+  console.log('Paystack Payload:', payload);
+
+  try {
+    const res = await axios.post("https://api.paystack.co/transferrecipient", payload, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log('Paystack Response:', res.data);
+
+    if (!res?.data?.status) {
+      throw new Error(res.data.message || "Failed to create Paystack recipient");
+    }
+
+    return res.data.data.recipient_code;
+  } catch (error) {
+    console.error('Paystack API Error:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Failed to create payment recipient");
+  }
+};
+
+
 module.exports = {
   initializePayment,
   verifyPayment,
   releasePayment,
   refundPayment,
+  ensureRecipientForBeneficiary,
 };

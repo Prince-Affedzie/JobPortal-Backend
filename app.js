@@ -8,10 +8,12 @@ const {Server} = require('socket.io')
 const http = require('http')
 const {JobModel} = require('./Models/JobsModel')
 const { UserModel } = require( "./Models/UserModel")
+const {ServiceCategory} = require('./Models/ServiceCategory')
 const {MiniTask} =require("./Models/MiniTaskModel")
 const ConversationRoom = require('./Models/ConversationRoom'); 
 const EmployerProfile = require('./Models/EmployerProfile')
 const {NotificationModel} = require('./Models/NotificationModel')
+
 
 
 const {userRouter} = require("./Routes/UserRoutes")
@@ -29,7 +31,8 @@ const {ratingRouter} = require('./Routes/RatingRoute')
 const {paymentRouter} = require('./Routes/PaymentRoute')
 const {adminUsersMonitoringRoute} = require('./Routes/AdminUserMonitoringRoute')
 const {twilioRouter} = require('./Controllers/twilioResetController')
-const {clientServiceRouter} = require('./AgencyBaseRoutes.js/clientServiceRoute')
+const {clientServiceRouter} = require('./AgencyBaseRoutes/clientServiceRoute')
+const {taskerServiceRouter} = require('./AgencyBaseRoutes/taskerServiceRoute')
 const  {geocodeAddress} = require('./Utils/geoService')
 
 
@@ -60,6 +63,7 @@ app.use(cors({
 
 
 
+
  
 const server = http.createServer(app)
 
@@ -78,6 +82,10 @@ mongoose.connect(process.env.DB_URL,
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
          console.log("Listening on Port 5000")
+         
+        
+        
+        
         })
        })
        .catch((err)=>{
@@ -135,6 +143,7 @@ app.use("/api",AdminMinitaskRouter)
 app.use("/api",adminUsersMonitoringRoute)
 app.use("/api",twilioRouter)
 app.use("/api",clientServiceRouter)
+app.use("/api",taskerServiceRouter)
 app.set('notificationService', notificationService);
 
 app.options('*', cors());

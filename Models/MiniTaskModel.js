@@ -14,12 +14,40 @@ const bidSchema = new Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+const NegotiationSchema = new mongoose.Schema({
+  tasker: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+ negotiationPrices: {
+    preferred: { type: Number },
+    mid: { type: Number },
+    lowest: { type: Number },
+  },
+  currentOfferedPrice: { type: Number, default: null },
+  negotiationStage: { type: Number, enum: [0, 1, 2], default: 0 },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "rejected", "countered"],
+    default: "pending",
+  },
+
+  message: { type: String },
+
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+
 const miniTaskSchema = new Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
     employer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    biddingType: { type: String, enum: ["fixed", "open-bid"], default: "fixed" }, 
+    biddingType: { type: String, enum: ["fixed", "open-bid","negotiation"], default: "fixed" }, 
     budget: { type: Number },
     finalAmount: { type: Number, default: null },
 
@@ -45,8 +73,14 @@ const miniTaskSchema = new Schema({
     requirements: [{ 
         type: String
     }],
- 
-    address:{
+
+ media: [
+   {
+    url: String,
+    type: { type: String, enum: ["image", "video"] }
+   }
+ ],
+  address:{
         region:String,
         city:String,
         suburb:String,
@@ -68,6 +102,7 @@ const miniTaskSchema = new Schema({
     }],
 
     bids: [bidSchema], 
+    negotiations: [NegotiationSchema],
 
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     assignmentAccepted: { type: Boolean, default: false },

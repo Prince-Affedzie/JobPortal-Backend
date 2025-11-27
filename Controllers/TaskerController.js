@@ -4,8 +4,11 @@ const { MiniTask } = require("../Models/MiniTaskModel");
 const {Payment} = require('../Models/PaymentModel')
 const { UserModel } = require('../Models/UserModel');
 const ConversationRoom = require('../Models/ConversationRoom');
-const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
+const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = require('../Services/aws_S3_file_Handling');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
+const {ensureRecipientForBeneficiary} = require('../Controllers/PaymentController')
+
+
 
 const applyToJob = async (req, res) => {
     const { id } = req.user;
@@ -216,6 +219,82 @@ const applyOrBidMiniTask = async (req, res) => {
         console.error(err);
         res.status(500).json({ message: "Internal Server Error" });
     }
+};
+
+const negotiateOnMiniTask = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { Id } = req.params; 
+    const { message, preferred,mid,lowest, } = req.body;
+   const  negotiationPrices ={
+       preferred,
+       mid,
+       lowest
+     }
+
+
+    const miniTask = await MiniTask.findById(Id).populate("employer", "_id name");
+    const user = await UserModel.findById(userId);
+
+    if (!miniTask || !user) {
+      return res.status(404).json({ message: "Task or user not found." });
+    }
+
+    if (miniTask.biddingType !== "negotiation") {
+      return res.status(400).json({ message: "This task does not support negotiation." });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message:
+          "Sorry, you can't negotiate until your account is verified. Verification typically takes 24 hours.",
+      });
+    }
+
+    if (user._id.toString() === miniTask.employer._id.toString()) {
+      return res.status(400).json({ message: "You cannot negotiate on your own task." });
+    }
+
+    const alreadyNegotiated = miniTask.negotiations.some(
+      (n) => n.tasker.toString() === userId
+    );
+    if (alreadyNegotiated) {
+      return res.status(400).json({ message: "You have already submitted a negotiation for this task." });
+    }
+
+    const negotiationEntry = {
+      tasker: userId,
+      negotiationPrices,
+      message,
+      currentOfferedPrice: negotiationPrices?.preferred || 0,
+      negotiationStage: 0,
+      status: "pending",
+    };
+
+    miniTask.negotiations.push(negotiationEntry);
+
+    if (!miniTask.applicants.includes(userId)) {
+      miniTask.applicants.push(userId);
+      user.appliedMiniTasks.push(miniTask._id);
+    }
+
+    await miniTask.save();
+    await user.save();
+     const notificationService = req.app.get("notificationService");
+            await notificationService.sendMicroJobApplicationNotification({
+                clientId: miniTask.employer._id,
+                jobTitle: miniTask.title,
+                taskerName:user.name,
+            });
+
+    res.status(200).json({
+      message: "Negotiation submitted successfully.",
+      negotiation: negotiationEntry,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 const acceptMiniTaskAssignment = async (req, res) => {
@@ -563,13 +642,13 @@ const addPaymentMethod = async (req, res) => {
     const user = await UserModel.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // If new method is default, unset previous defaults
+    // Remove previous default if needed
     if (isDefault) {
       user.paymentMethods.forEach((pm) => (pm.isDefault = false));
     }
 
     user.paymentMethods.push({
-      type,
+      type: type || "mobile_money",
       provider,
       accountName,
       accountNumber,
@@ -577,13 +656,28 @@ const addPaymentMethod = async (req, res) => {
       isDefault,
     });
 
+    // Ensure Paystack recipient exists
+    const recipientCode = await ensureRecipientForBeneficiary(user, {
+      provider,
+      accountName,
+      accountNumber,
+    });
+
+    user.paystackRecipientCode = recipientCode;
+
     await user.save();
-    res.status(200).json({ message: "Payment method added"});
+
+    res.status(200).json({ 
+      message: "Payment method added successfully",
+      recipientCode 
+    });
+
   } catch (err) {
     console.error("Error adding payment method:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const modifyPaymentMethod = async (req, res) => {
   try {
@@ -657,6 +751,61 @@ const deletePaymentMethod = async (req, res) => {
 };
 
 
+const addWorkSamplesToProfile = async(req,res)=>{
+  try{
+    const {id} = req.user
+    const {workPortfolio} = req.body
+    const user = await UserModel.findById(id)
+    if(!user){
+      return res.status(500).json({message:"User Account doesn't exist"})
+    }
+
+    user.workPortfolio.push(workPortfolio)
+    await user.save()
+    res.status(200).json({message:"Work Samples Added Successfully"})
+
+
+  }catch(err){
+        console.log(err)
+        res.status(500).json({message: "Internal Server Error"})
+    }
+}
+
+const removeWorkSample = async (req, res) => {
+  try {
+    const { sampleId } = req.params;
+    const { id } = req.user;
+    console.log(req.params)
+    
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User account doesn't exist" });
+    }
+
+    // Check if the work sample exists in user's portfolio
+    const sampleExists = user.workPortfolio.some(sample => sample._id.toString() === sampleId);
+    if (!sampleExists) {
+      return res.status(404).json({ message: "Work sample not found" });
+    }
+    const portfolioToDelete = user.workPortfolio.find(sample => sample._id.toString() === sampleId)
+    const fileurls = portfolioToDelete.files.map((i)=>i.publicUrl)
+    deleteMultipleFromS3(fileurls).catch(console.error)
+
+    // Filter out the sample and assign back to the array
+    user.workPortfolio = user.workPortfolio.filter(sample => sample._id.toString() !== sampleId);
+    
+    await user.save();
+    
+    res.status(200).json({ 
+      message: "Portfolio deleted successfully",
+      remainingSamples: user.workPortfolio.length
+    });
+
+  } catch (err) {
+    console.log("Error removing work sample:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 module.exports = {
@@ -677,4 +826,7 @@ module.exports = {
     modifyPaymentMethod,
     deletePaymentMethod,
     getNearbyTasks,
+    negotiateOnMiniTask,
+    addWorkSamplesToProfile,
+    removeWorkSample,
 };

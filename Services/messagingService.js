@@ -53,6 +53,7 @@ function socketHandler(io, socket) {
 
  socket.on('markAsSeen', async ({ messageId, userId }) => {
     try {
+      
       const message = await Message.findByIdAndUpdate(
         messageId,
         { $addToSet: { seenBy: userId } },
@@ -73,7 +74,6 @@ function socketHandler(io, socket) {
         // Reset unread count for this user
         room.unreadCounts.set(userId, 0);
         await room.save();
-
         // Emit consistent data structure
         io.to(message.room.toString()).emit('messageSeen', {
           messageId,

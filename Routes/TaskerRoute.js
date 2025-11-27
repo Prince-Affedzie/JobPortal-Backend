@@ -6,6 +6,7 @@ const {
     applyToJob,
     getNearbyTasks,
     applyOrBidMiniTask,
+    negotiateOnMiniTask,
     acceptMiniTaskAssignment,
     rejectMiniTaskAssignment,
     viewAllApplications,
@@ -20,11 +21,14 @@ const {
     addPaymentMethod,
     modifyPaymentMethod,
     deletePaymentMethod,
+    addWorkSamplesToProfile,
+    removeWorkSample,
 } = require("../Controllers/TaskerController.js");
 
 // Job application routes
 taskerRouter.post('/h1/v2/apply/:Id', verify_token, upload.single("resume"), applyToJob);
 taskerRouter.post('/h1/v2/mini_task/apply/:Id', verify_token, applyOrBidMiniTask);
+taskerRouter.post('/h1/v2/mini_task/negotiate/:Id',verify_token,negotiateOnMiniTask)
 taskerRouter.get('/h1/v2/get_nearby_tasks',verify_token,getNearbyTasks)
 
 // Task assignment acceptance/rejection
@@ -52,5 +56,9 @@ taskerRouter.patch("/h1/v2/update_availability",verify_token,updateAvailability 
 taskerRouter.post("/h1/v2/add_payment_method",verify_token,addPaymentMethod)
 taskerRouter.put("/h1/v2/update_payment_method/:methodId",verify_token, modifyPaymentMethod)
 taskerRouter.delete("/h1/v2/delete_payment_method/:methodId",verify_token, deletePaymentMethod)
+
+// Work sample adding
+taskerRouter.post("/h1/v2/add_work_sample_to_profile",verify_token,addWorkSamplesToProfile)
+taskerRouter.delete("/h1/v2/remove_work_sample_from_profile/:sampleId",verify_token,removeWorkSample)
 
 module.exports = { taskerRouter };

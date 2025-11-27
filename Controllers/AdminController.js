@@ -6,6 +6,7 @@ const {JobModel} = require('../Models/JobsModel')
 const {MiniTask} =require("../Models/MiniTaskModel")
 const {Alert} =require("../Models/AlertModel")
 const EmployerProfile = require('../Models/EmployerProfile')
+const {Payment} = require('../Models/PaymentModel')
 
 const adminSignup = async(req,res)=>{
     const {name,email,password,} =req.body
@@ -621,6 +622,59 @@ const  updateTaskerStatus = async(req,res)=>{
 }
 
 
+const getAllPayments = async(req,res)=>{
+    try{
+        const payments = await Payment.find()
+           .populate('taskId')
+           .populate('beneficiary')
+           .populate('initiator').sort({createdAt:-1})
+
+        res.status(200).json(payments)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+
+const getASinglePayment = async(req,res)=>{
+    try{
+        const {paymentId} = req.params
+        const payment = await Payment.findById(paymentId)
+              .populate('taskId')
+              .populate('beneficiary')
+              .populate('initiator')
+        if(!payment){
+            return res.status(404).json({message:"Payment not Found."})
+        }
+       res.status(200).json(payment)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
+const modifyPaymentStatus = async(req,res)=>{
+    try{
+        const {paymentId} = req.params
+        const {id} = req.user
+        const {status} = req.body
+        const payment = await Payment.findById(paymentId)
+        if(!payment){
+            return res.status(404).json({message:"Payment record not found"})
+        }
+        payment.status = status
+        await payment.save()
+        res.status(200).json({message:"Payment status modified successfully"})
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+    }
+}
+
 
 
 
@@ -630,4 +684,4 @@ module.exports = {adminSignup,adminLogin,adminLogout,adminEditProfile, adminProf
     getAllUsers,getSingleUser, removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,removeJob,upDateJob,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
     modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,
-    getAllTaskers,getTaskerDetails,updateTaskerStatus }
+    getAllTaskers,getTaskerDetails,updateTaskerStatus,getAllPayments,getASinglePayment,modifyPaymentStatus }

@@ -40,6 +40,10 @@ const userSchema = new Schema(
         index: true, // for matching users by skill
       },
     ],
+    serviceTags: [{
+    category: { type: String, required: true },
+    subcategory: { type: String, required: true }
+  }], 
     education: [
       {
         certification: String,
@@ -178,6 +182,11 @@ const userSchema = new Schema(
   },
 },
 
+paystackRecipientCode:{
+  type:String,
+  default:null
+},
+
 paymentMethods: [
   {
     type: {
@@ -188,7 +197,7 @@ paymentMethods: [
     },
     provider: {
       type: String,
-      default: null, // e.g., "MTN", "AirtelTigo", "Visa", "MasterCard"
+      default: null, 
     },
     accountName: {
       type: String,
@@ -202,11 +211,11 @@ paymentMethods: [
     },
     countryCode: {
       type: String,
-      default: "GH", // useful if expanding beyond Ghana
+      default: "GH", 
     },
     isDefault: {
       type: Boolean,
-      default: false, // easily mark default payment method
+      default: false, 
       index: true,
     },
     verified: {
@@ -232,7 +241,37 @@ paymentMethods: [
 userSchema.index({ role: 1, createdAt: -1 }); 
 userSchema.index({ createdAt: -1 });          
 userSchema.index({ location: 1 });           
-userSchema.index({ skills: 1, role: 1 });     
+userSchema.index({ skills: 1, role: 1 }); 
+
+userSchema.index({
+    
+    name: 'text',
+    skills: 'text',
+    'serviceTags.category': 'text',
+    'serviceTags.subcategory': 'text',
+    
+    
+    'workExperience.jobTitle': 'text',
+    'workExperience.description': 'text',
+    'workPortfolio.title': 'text',
+    Bio: 'text', 
+
+}, {
+    weights: {
+        
+        'serviceTags.category': 15,
+        'serviceTags.subcategory': 15,
+        skills: 12,
+        'workExperience.jobTitle': 10,
+        name: 8,
+        Bio: 5,
+        'workExperience.description': 3,
+        'workPortfolio.title': 1,
+    },
+    name: "ProfileTextSearchIndex",
+    default_language: "english", 
+    language_override: "language",
+});
 
 const UserModel = mongoose.model("User", userSchema);
 module.exports = { UserModel };

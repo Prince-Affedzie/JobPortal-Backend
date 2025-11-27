@@ -49,13 +49,272 @@ class NotificationService {
     }
   }
 
+  // ==================== SERVICE REQUEST FLOW NOTIFICATIONS ====================
+
   /**
-   * Sends a job application notification
-   * @param {Object} options
-   * @param {string} options.employerId - The job poster's user ID
-   * @param {string} options.jobTitle - The job title
-   * @param {string} options.applicantName - Name of the applicant
-   * @returns {Promise<Notification>}
+   * Notify taskers about new service request
+   */
+  async notifyTaskersForNewRequest(taskerIds, requestId, clientId) {
+    try {
+      const client = await UserModel.findById(clientId).select('name');
+      const clientName = client?.name || 'A client';
+
+      for (const taskerId of taskerIds) {
+        await this.sendNotification({
+          userId: taskerId,
+          title: "🛠️ New Service Request",
+          message: `${clientName} needs your service! Check the request details and submit your offer to get hired.`
+        });
+      }
+    } catch (error) {
+      console.error('Notify taskers for new request error:', error);
+    }
+  }
+
+  /**
+   * Notify client about new offer from tasker
+   */
+  async notifyClientNewOffer(clientId, requestId, taskerId) {
+    try {
+      const tasker = await UserModel.findById(taskerId).select('name');
+      const taskerName = tasker?.name || 'A tasker';
+
+      await this.sendNotification({
+        userId: clientId,
+        title: "💰 New Offer Received",
+        message: `${taskerName} has submitted an offer for your service request. Review their proposal and compare with other offers.`
+      });
+    } catch (error) {
+      console.error('Notify client new offer error:', error);
+    }
+  }
+
+  /**
+   * Notify client about updated offer
+   */
+  async notifyClientOfferUpdated(clientId, requestId, taskerId) {
+    try {
+      const tasker = await UserModel.findById(taskerId).select('name');
+      const taskerName = tasker?.name || 'A tasker';
+
+      await this.sendNotification({
+        userId: clientId,
+        title: "✏️ Offer Updated",
+        message: `${taskerName} has updated their offer for your service request. Check the new proposal details.`
+      });
+    } catch (error) {
+      console.error('Notify client offer updated error:', error);
+    }
+  }
+
+  /**
+   * Notify tasker their offer was accepted
+   */
+  async notifyTaskerOfferAccepted(taskerId, requestId) {
+    try {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "✅ Offer Accepted!",
+        message: "Congratulations! Your offer has been accepted. The job is now assigned to you. Check the details and start planning your work."
+      });
+    } catch (error) {
+      console.error('Notify tasker offer accepted error:', error);
+    }
+  }
+
+  /**
+   * Notify taskers their offers were declined
+   */
+  async notifyTaskersOfferDeclined(taskerIds, requestId) {
+    try {
+      for (const taskerId of taskerIds) {
+        await this.sendNotification({
+          userId: taskerId,
+          title: "📝 Offer Not Selected",
+          message: "The client has selected another tasker for this service request. Don't worry, new opportunities come every day!"
+        });
+      }
+    } catch (error) {
+      console.error('Notify taskers offer declined error:', error);
+    }
+  }
+
+  /**
+   * Notify taskers about canceled request
+   */
+  async notifyTaskersRequestCanceled(taskerIds, requestId) {
+    try {
+      for (const taskerId of taskerIds) {
+        await this.sendNotification({
+          userId: taskerId,
+          title: "❌ Request Canceled",
+          message: "The service request you submitted an offer for has been canceled by the client."
+        });
+      }
+    } catch (error) {
+      console.error('Notify taskers request canceled error:', error);
+    }
+  }
+
+  /**
+   * Notify client about job status update
+   */
+  async notifyClientJobStatusUpdate(clientId, requestId, newStatus, note = null) {
+    try {
+      const statusMessages = {
+        'In-progress': "has started working on your service request.",
+        'Review': "has completed the work and is waiting for your review.",
+        'Completed': "has marked the job as completed. Please review and confirm."
+      };
+
+      const message = `Your tasker ${statusMessages[newStatus] || `has updated the status to ${newStatus}`}${note ? ` Note: ${note}` : ''}`;
+
+      await this.sendNotification({
+        userId: clientId,
+        title: "📊 Job Status Updated",
+        message: message
+      });
+    } catch (error) {
+      console.error('Notify client job status update error:', error);
+    }
+  }
+
+  /**
+   * Notify tasker when client marks job as done
+   */
+  async notifyTaskerClientMarkedDone(taskerId, requestId, clientName) {
+    try {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "⭐ Work Approved!",
+        message: `${clientName} has confirmed your work is completed and approved the job. Payment will be processed soon.`
+      });
+    } catch (error) {
+      console.error('Notify tasker client marked done error:', error);
+    }
+  }
+
+  /**
+   * Notify both parties when job is fully completed
+   */
+  async notifyJobFullyCompleted(clientId, taskerId, requestTitle) {
+    try {
+      // Notify client
+      await this.sendNotification({
+        userId: clientId,
+        title: "🎉 Job Completed!",
+        message: `Your "${requestTitle}" service has been successfully completed. Thank you for using our platform!`
+      });
+
+      // Notify tasker
+      await this.sendNotification({
+        userId: taskerId,
+        title: "🏆 Job Successfully Completed",
+        message: `Great work on "${requestTitle}"! The job is now officially closed and your payment is being processed.`
+      });
+    } catch (error) {
+      console.error('Notify job fully completed error:', error);
+    }
+  }
+
+  /**
+   * Notify tasker about new bulk request (multiple taskers notified)
+   */
+  async notifyTaskerNewBulkRequest(taskerId, requestCount, clientName) {
+    try {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "📨 New Service Request",
+        message: `${clientName} needs your service! You're among ${requestCount} taskers notified. Submit your competitive offer quickly!`
+      });
+    } catch (error) {
+      console.error('Notify tasker new bulk request error:', error);
+    }
+  }
+
+  /**
+   * Notify client when tasker withdraws offer
+   */
+  async notifyClientOfferWithdrawn(clientId, taskerName, requestTitle) {
+    try {
+      await this.sendNotification({
+        userId: clientId,
+        title: "↩️ Offer Withdrawn",
+        message: `${taskerName} has withdrawn their offer for "${requestTitle}". You still have other offers to consider.`
+      });
+    } catch (error) {
+      console.error('Notify client offer withdrawn error:', error);
+    }
+  }
+
+  /**
+   * Notify tasker about urgent request
+   */
+  async notifyTaskerUrgentRequest(taskerId, clientName, serviceType) {
+    try {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "🚨 Urgent Service Request",
+        message: `${clientName} needs ${serviceType} service urgently! Respond quickly to get this high-priority job.`
+      });
+    } catch (error) {
+      console.error('Notify tasker urgent request error:', error);
+    }
+  }
+
+  /**
+   * Notify client about expiring request (no offers yet)
+   */
+  async notifyClientRequestExpiring(clientId, requestTitle, hoursLeft) {
+    try {
+      await this.sendNotification({
+        userId: clientId,
+        title: "⏰ Request Expiring Soon",
+        message: `Your "${requestTitle}" request has ${hoursLeft} hours left. Consider modifying your request to attract more taskers.`
+      });
+    } catch (error) {
+      console.error('Notify client request expiring error:', error);
+    }
+  }
+
+
+  async notifyTaskersAboutRequestUpdate({taskerIds, requesTitle, clientId}) {
+  try {
+    const client = await UserModel.findById(clientId).select('name');
+    const clientName = client?.name || 'The client';
+    
+
+    for (const taskerId of taskerIds) {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "📝 Service Request Updated",
+        message: `${clientName} have make changes to their service request. "${requesTitle}". Please review the changes to ensure your offer still matches their updated requirements.`
+      });
+    }
+  } catch (error) {
+    console.error('Notify taskers about request update error:', error);
+  }
+}
+
+  /**
+   * Notify tasker about preferred offer (client showed special interest)
+   */
+  async notifyTaskerPreferredOffer(taskerId, clientName) {
+    try {
+      await this.sendNotification({
+        userId: taskerId,
+        title: "⭐ Preferred Offer",
+        message: `${clientName} has shown special interest in your offer! They might be waiting for your response.`
+      });
+    } catch (error) {
+      console.error('Notify tasker preferred offer error:', error);
+    }
+  }
+
+  // ==================== EXISTING NOTIFICATIONS (KEEP THESE) ====================
+
+  /**
+   * Sends job application notification
    */
   async sendJobApplicationNotification({ employerId, jobTitle, applicantName }) {
     return this.sendNotification({
@@ -254,7 +513,6 @@ class NotificationService {
   });
 }
 
-
 async sendDisputeResolvedNotification({ party1,party2, taskTitle, resolution, caseId }) {
    await this.sendNotification({
     userId:party1,
@@ -268,7 +526,6 @@ async sendDisputeResolvedNotification({ party1,party2, taskTitle, resolution, ca
     title: "✅ Dispute Resolved - Case Closed"
   });
 }
-
 
 /**
  * Sends work submission notification to client
@@ -307,7 +564,6 @@ async sendRevisionRequestedNotification({ freelancerId, taskTitle, clientName, f
   });
 }
 
-
 async sendSubmissionRejectedNotification({ freelancerId, taskTitle, clientName, feedback }) {
   return this.sendNotification({
     userId: freelancerId,
@@ -315,8 +571,6 @@ async sendSubmissionRejectedNotification({ freelancerId, taskTitle, clientName, 
     title: "⚠️ Submission Needs Improvement"
   });
 }
-
-
 
 /**
  * Sends notification when admin modifies client task status
@@ -345,9 +599,6 @@ async sendAdminTaskStatusUpdateNotification({ clientId, taskTitle, oldStatus, ne
     title: "🔧 Task Status Updated"
   });
 }
-
-
-
 
 async sendCuratedInvitationNotification({ tasker, taskId, taskTitle, clientName }) {
   return this.sendNotification({

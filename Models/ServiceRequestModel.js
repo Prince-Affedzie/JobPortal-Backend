@@ -8,33 +8,49 @@ const ServiceRequestSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    service: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
-      required: true,
-    },
+    type: { type: String, required: true },
+    description: { type: String, required: true },
     assignedTasker: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null, 
     },
-    
-    description: { type: String, maxlength: 2000 },
-      
-    location: {
-        address: { type: String },
-        lat: { type: Number },
-        lng: { type: Number },
-      },
+     
+     address:{
+        region:String,
+        city:String,
+        suburb:String,
+        latitude: Number,
+        longitude: Number,
+        coordinates: {
+        type: [Number], 
+        index: "2dsphere",
+    }
+  },
 
     requirements:[{
         type: String
     }],
 
+    media: [
+   {
+    url: String,
+    type: { type: String, enum: ["image", "video"] }
+   }
+ ],
+
+ status: { 
+        type: String, 
+        enum: [
+            "Pending", "Quoted","Booked","In-progress","Review","Canceled","Completed","Closed"
+        ], 
+        default: "Pending" 
+    },
+
     preferredDate: { type: Date },
 
     preferredTime:{
-        type:Number
+        type:String,
     },
 
     urgency: {
@@ -42,56 +58,46 @@ const ServiceRequestSchema = new mongoose.Schema(
         enum: ["flexible", "urgent", "scheduled"],
         default: "flexible",
       },
-
-    attachments: [String], 
     
      budget: {
       type: Number,
       min: 0,
       default: null,
     },
+    
+    notifiedTaskers: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  ],
 
-    pricing: {
-      estimatedCost: { type: Number, min: 0 },
-      finalCost: { type: Number, min: 0 },
-      currency: { type: String, default: "GHS" },
-    },
 
-    status: {
-      type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "in_progress",
-        "completed",
-        "rejected",
-        "cancelled",
-      ],
-      default: "pending",
-      index: true,
-    },
+   offers: [
+    {
+      tasker: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      amount: Number,
+      message: String,
+      status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" },
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
 
-    payment: {
-      method: {
-        type: String,
-        enum: ["mobile_money", "card", "cash", "wallet"],
-        default: "mobile_money",
-      },
 
-      transactionId: { type: String },
-      isPaid: { type: Boolean, default: false },
-      paidAt: { type: Date },
-    },
+    finalCost: { type: Number, default: null },
+
+    markedDoneByEmployer: { type: Boolean, default: false },
+
+    employerDoneAt: { type: Date, default: null },
+
+    markedDoneByTasker: { type: Boolean, default: false },
+
+    taskerDoneAt: { type: Date, default: null },
+
+    funded:{type:Boolean,default:false},
 
     feedback: {
       rating: { type: Number, min: 1, max: 5 },
       comment: String,
     },
-    markedDoneByClient: { type: Boolean, default: false },
-    clientDoneAt: { type: Date, default: null },
-
-    markedDoneByTasker: { type: Boolean, default: false },
-    taskerDoneAt: { type: Date, default: null },
+ 
 },
   { timestamps: true }
 );

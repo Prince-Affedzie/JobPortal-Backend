@@ -7,7 +7,7 @@ const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfil
     getAllUsers,getSingleUser,removeUser,getAllJobs,getSingleJob,adminAddJob,controlJobStatus,upDateJob,getAllEmployerProfiles,
     getSingleEmployerProfile,modifyEmployerProfile,deleteEmployerProfile,getAllMiniTasks,getSingleMinitask,
     modifyMiniTaskStatus,deleteMiniTask, modifyMiniTask,fetchAlerts,markAlertsAsRead, markAlertAsRead,getAllTaskers,
-    getTaskerDetails,updateTaskerStatus,
+    getTaskerDetails,updateTaskerStatus,getAllPayments,getASinglePayment,modifyPaymentStatus,
 } = require('../Controllers/AdminController')
 
 adminRouter.post('/admin/signUp',adminSignup)
@@ -41,4 +41,7 @@ adminRouter.put('/admin/alerts/:id/read',verify_token,markAlertAsRead)
 adminRouter.get('/admin/get_all_taskers',verify_token,getAllTaskers)
 adminRouter.get('/admin/get_tasker_info/:taskerId',verify_token,getTaskerDetails)
 adminRouter.put('/admin/update_tasker_status/:taskerId',verify_token,updateTaskerStatus)
+adminRouter.get('/admin/get_all_payments',verify_token,getAllPayments)
+adminRouter.get('/admin/get_a_single_payment/:paymentId',verify_token,getASinglePayment)
+adminRouter.put('/admin/update_payment_record/:paymentId',verify_token,modifyPaymentStatus)
 module.exports = {adminRouter}

@@ -1,71 +1,112 @@
 const { JobModel } = require('../Models/JobsModel');
 const { MiniTask } = require("../Models/MiniTaskModel");
+const {ServiceCategory} = require('../Models/ServiceCategory')
+const {searchRankedTaskers} = require('../Services/TaskerSearchService')
 const { UserModel } = require('../Models/UserModel');
 const ConversationRoom = require('../Models/ConversationRoom');
 const {Payment} = require('../Models/PaymentModel')
 const { processEvent } = require('../Services/adminEventService');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
 const {geocodeAddress} = require('../Utils/geoService')
+const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = require('../Services/aws_S3_file_Handling');
+
 
 const postMiniTask = async (req, res) => {
     try {
-        console.log("Executing")
         const { id } = req.user;
-        const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired,requirements } = req.body;
+        const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired, requirements, media } = req.body;
         console.log(req.body)
-        if (!title || !description  || !deadline || !locationType) {
+        
+        if (!title || !description || !deadline || !locationType) {
             return res.status(400).json({ error: "All required fields must be provided" });
         }
 
         let geoData = {
-         latitude: null,
-         longitude: null,
-         coordinates: [],
+            latitude: null,
+            longitude: null,
+            coordinates: [],
         };
 
-         if (address && (address.city || address.region || address.suburb)) {
-         const addressString = `${address.suburb || ""}, ${address.city || ""}, ${address.region || ""}`;
-         const geo = await geocodeAddress(addressString);
+        // Only attempt geocoding for on-site tasks with valid address
+        if (locationType === 'on-site' && address && (address.city || address.region || address.suburb)) {
+            try {
+                const addressString = `${address.suburb || ""}, ${address.city || ""}, ${address.region || ""}`.trim();
+                
+                // Remove empty parts and clean up the address string
+                const cleanAddress = addressString.replace(/,+/g, ',').replace(/^,|,$/g, '').trim();
+                
+                if (cleanAddress) {
+                    const geo = await geocodeAddress(cleanAddress);
+                    console.log("Geocoding result:", geo);
 
-        if (geo) {
-          geoData = {
-           latitude: geo.lat,
-           longitude: geo.lon,
-           coordinates: [parseFloat(geo.lon), parseFloat(geo.lat)], // GeoJSON standard
-         };
-       }
-      }
-        
+                    if (geo && geo.lat && geo.lon && !isNaN(parseFloat(geo.lat)) && !isNaN(parseFloat(geo.lon))) {
+                        const lat = parseFloat(geo.lat);
+                        const lon = parseFloat(geo.lon);
+                        
+                        geoData = {
+                            latitude: lat,
+                            longitude: lon,
+                            coordinates: [lon, lat], // GeoJSON standard: [longitude, latitude]
+                        };
+                        console.log("Geocoding successful:", geoData);
+                    } else {
+                        console.log("Geocoding failed or returned invalid coordinates");
+                        // Set default coordinates for Accra, Ghana if geocoding fails
+                        geoData = {
+                            latitude: 5.6037,
+                            longitude: -0.1870,
+                            coordinates: [-0.1870, 5.6037], // Default to Accra coordinates
+                        };
+                    }
+                }
+            } catch (geoError) {
+                console.log("Geocoding error:", geoError);
+                // Set default coordinates if geocoding fails
+                geoData = {
+                    latitude: 5.6037,
+                    longitude: -0.1870,
+                    coordinates: [-0.1870, 5.6037], // Default to Accra coordinates
+                };
+            }
+        }
 
-        const newTask = new MiniTask({
+        // Build the task object
+        const taskData = {
             title,
             description,
             employer: id,
             biddingType,
-            budget,
+            budget: biddingType === 'negotiation' ? null : budget,
             deadline,
-            address: {
-              region: address?.region || null,
-               city: address?.city || null,
-               suburb: address?.suburb || null,
-               latitude: geoData.latitude,
-               longitude: geoData.longitude,
-               coordinates: geoData.coordinates,
-           },
+            media: media || [],
             locationType,
             category,
             subcategory,
-            skillsRequired,
-            requirements,
-        });
+            skillsRequired: skillsRequired || [],
+            requirements: requirements || [],
+        };
 
-        
+        // Only add address for on-site tasks
+        if (locationType === 'on-site') {
+            taskData.address = {
+                region: address?.region || null,
+                city: address?.city || null,
+                suburb: address?.suburb || null,
+                latitude: geoData.latitude,
+                longitude: geoData.longitude,
+                coordinates: geoData.coordinates.length > 0 ? geoData.coordinates : undefined,
+            };
+        }
 
+        console.log("Final task data:", taskData);
+
+        const newTask = new MiniTask(taskData);
         await newTask.save();
+        
         processEvent("NEW_MICRO_JOB_POSTING", newTask);
         return res.status(200).json({ message: "Task Created Successfully" });
     } catch (err) {
-        console.log(err);
+        console.log("Error in postMiniTask:", err);
         res.status(500).json({ message: "Internal server Error" });
     }
 };
@@ -345,6 +386,8 @@ const deleteMiniTask = async (req, res) => {
         if (!task || task.assignedTo !== null || task.status === "In-progress") {
             return res.status(400).json({ message: "This task is not allowed for deletion" });
         }
+        const fileUrls = task.media.map((i)=>i.url)
+        deleteMultipleFromS3(fileUrls).catch(console.error())
         await task.deleteOne();
         res.status(200).json({ message: "Task Deleted Successfully" });
     } catch (err) {
@@ -441,6 +484,163 @@ const viewAllPayments = async(req,res)=>{
     }
 }
 
+const searchTaskers = async (req, res) => {
+  try {
+    const { address, searchQuery, maxDistance = 100 } = req.body;
+    console.log(searchQuery)
+    
+
+    const addressString = `${address?.suburb || ""}, ${address?.town|| ""}, ${address?.city || ""}, ${address?.region || ""}`
+      .replace(/,+/g, ",")
+      .replace(/^,|,$/g, "")
+      .trim();
+
+     console.log(addressString) 
+    let lat, lon;
+
+    if (addressString) {
+      const geo = await geocodeAddress(addressString);
+      if (geo?.latitude && geo?.longitude) {
+        lat = parseFloat(geo.latitude);
+        lon = parseFloat(geo.longitude);
+      }
+    }
+   
+    if (!lat || !lon) {
+      return res.status(400).json({
+        success: false,
+        message: "Location could not be processed. Try providing a more specific place.",
+      });
+    }
+
+    const baseMatch = {
+      role: "job_seeker",
+      isActive: true,
+      isVerified: true,
+      "availability.status": "available",
+    };
+
+   /* const skillRegexArray = skills.map((s) => new RegExp(s, "i"));
+
+    const pipeline = [
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [lon, lat] },
+          distanceField: "distance",
+          spherical: true,
+          maxDistance: Number(maxDistance),
+        },
+      },
+      { $match: baseMatch },
+      {
+        $addFields: {
+          skillMatchScore: {
+            $size: {
+              $setIntersection: ["$skills", skills],
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          skillMatchScore: -1,
+          rating: -1,
+          distance: 1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          rating: 1,
+          skills: 1,
+          profileImage: 1,
+          distance: 1,
+          skillMatchScore: 1,
+          "availability.status": 1,
+          location: 1,
+        },
+      },
+      { $limit: 50 },
+    ];*/
+
+    let taskers = await searchRankedTaskers(lon, lat, searchQuery, maxDistance);
+
+   /*
+    if (taskers.length < 10 && skills.length > 0) {
+      const fallbackPipeline = [
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [lon, lat] },
+            distanceField: "distance",
+            spherical: true,
+            maxDistance: Number(maxDistance),
+          },
+        },
+        { $match: baseMatch },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            rating: 1,
+            skills: 1,
+            profileImage: 1,
+            distance: 1,
+            "availability.status": 1,
+            location: 1,
+          },
+        },
+        { $sort: { distance: 1, rating: -1 } },
+        { $limit: 50 },
+      ];
+
+      const fallback = await UserModel.aggregate(fallbackPipeline);
+      taskers = [...taskers, ...fallback].filter(
+        (v, i, a) => a.findIndex((t) => t._id.toString() === v._id.toString()) === i
+      );
+    }*/
+
+    return res.status(200).json({ success: true, data: taskers });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, message: "Search failed" });
+  }
+};
+
+const getTaskers = async (req, res) => {
+  try {
+    const categories = await ServiceCategory.find({ isFeatured: true });
+
+    const result = await Promise.all(
+      categories.map(async (category) => {
+        const subcategoryNames = category.subcategories.map(s => s.name); 
+        // Example: ["Home Cleaning", "Office Cleaning"]
+
+        const topTaskers = await UserModel.find({
+          role: "job_seeker",
+          isVerified: true,
+          isActive: true,
+          "serviceTags.subcategory": { $in: subcategoryNames }
+        })
+          .sort({ rating: -1, numberOfRatings: -1 })
+          .limit(5);
+
+        return { 
+          category: category.name, 
+          subcategories: category.subcategories,
+          taskers: topTaskers 
+        };
+      })
+    );
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, message: "Search failed" });
+  }
+};
+
 
 
 module.exports = {
@@ -456,4 +656,6 @@ module.exports = {
     markTaskDoneByClient, 
     unmarkTaskDoneByClient,
     viewAllPayments,
+    searchTaskers,
+    getTaskers,
 };

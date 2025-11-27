@@ -5,13 +5,14 @@ const  cloudinary =require('../Config/Cloudinary')
 const streamifier = require('streamifier');
 const validator = require("validator")
 const CloudinaryFileUploadService  = require('../Services/cloudinaryFileUpload')
-const {getUploadURL, getPublicURL} = require('../Services/aws_S3_file_Handling')
+const {getUploadURL, getPublicURL, deleteFromS3,deleteMultipleFromS3,} = require('../Services/aws_S3_file_Handling')
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
 const {sendPasswordResetEmail} = require("../Services/emailService")
 const {processEvent} = require('../Services/adminEventService')
 const {geocodeAddress} = require('../Utils/geoService')
+const {getServiceTagFromSkill} = require('../Services/serviceTagAssignment')
 const fs = require('fs');
 const path = require('path');
 const io = require('../app')
@@ -160,13 +161,14 @@ const editProfile = async(req,res)=>{
     try{
          
         const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
-        console.log(req.body)
+        
        
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
             return res.staus(404).json("Account Doesn't Exist")
         }
+        const oldProfileImage = user.profileImage
 
         if(location){
           const addressString = `${location.street || ""}, ${location.town || ""}, ${
@@ -186,6 +188,11 @@ const editProfile = async(req,res)=>{
        }
 
         }
+
+        if(profileImage && profileImage !== oldProfileImage){
+           deleteFromS3(oldProfileImage).catch(console.error);
+           
+        }
         
         user.email = email || user.email
         user.phone = phone || user.phone
@@ -195,6 +202,25 @@ const editProfile = async(req,res)=>{
         user.Bio = Bio || user.Bio
         user.workPortfolio = workPortfolio ||  user.workPortfolio
         user.profileImage =profileImage || user.profileImage
+
+        if (skills) {
+   
+       const newServiceTags = []; 
+
+    for (let skill of skills) {
+        const match = await getServiceTagFromSkill(skill);
+       
+        if (match) newServiceTags.push(match);
+    }
+    
+    
+     const existingTags = Array.isArray(user.serviceTags) ? user.serviceTags : [];
+    
+      user.serviceTags = [
+        ...existingTags, 
+        ...newServiceTags 
+     ];
+     }
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})
 
@@ -206,12 +232,15 @@ const editProfile = async(req,res)=>{
     }
 }
 
+
+
 const onboarding = async(req,res)=>{
     try{
          
         const {phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage,idCard} = req.body
         const {id} = req.user
         const user = await UserModel.findById(id)
+        const serviceTags = [];
 
         if(!user){
             return res.status(404).json({message:"Account Doesn't Exist"})
@@ -248,6 +277,16 @@ const onboarding = async(req,res)=>{
        }else{
              user.location = location || user.location
        }
+
+       if(skills){
+          for (let skill of skills) {
+          const match = await getServiceTagFromSkill(skill);
+          if (match) serviceTags.push(match);
+         
+       }
+       }
+
+        user.serviceTags = serviceTags
         await user.save()
         res.status(200).json({message:"Profile Updated Successfully"})
 
@@ -460,5 +499,5 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,  requestPasswordReset, resetPassword,deleteBulkNotification,
+module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, }

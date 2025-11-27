@@ -37,7 +37,7 @@ const paymentSchema = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["mobile_money", "card", "bank", "wallet"],
+      enum: ["mobile_money", "card", "bank", "wallet","momo"],
       default: "mobile_money",
     },
     paymentChannel: {

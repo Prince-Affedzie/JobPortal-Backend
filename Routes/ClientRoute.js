@@ -15,10 +15,14 @@ const {
     markTaskDoneByClient,
     unmarkTaskDoneByClient,
     viewAllPayments,
+    searchTaskers,
+    getTaskers,
 } = require("../Controllers/ClientController.js");
+const {generateTaskMediaUploadURL} = require('../Services/portofolioFileUpload')
 
 // Mini task creation and management
 clientRouter.post("/h1/v2/post_mini_task", verify_token, verifyMiniTaskPostingEligibility, postMiniTask);
+clientRouter.post("/h1/v2/generate_task_media_upload_url",verify_token,generateTaskMediaUploadURL)
 clientRouter.put("/h1/v2/assign/mini_task/:taskId/:applicantId", verify_token, verifyMiniTaskPostingEligibility, assignMiniTask);
 clientRouter.put("/h1/v2/accept_bid/mini_task/:taskId/:bidId", verify_token, verifyMiniTaskPostingEligibility, acceptBid);
 
@@ -38,4 +42,8 @@ clientRouter.delete("/h1/v2/delete/mini_task/:Id", verify_token, verifyMiniTaskP
 
 // view Payments 
 clientRouter.get('/h1/v2/get_all_payments',verify_token,viewAllPayments)
+
+// Taskers Searching
+clientRouter.post('/h1/v2/taskers-search',verify_token, searchTaskers)
+clientRouter.get('/h1/v2/taskers-get',verify_token,getTaskers)
 module.exports = { clientRouter };

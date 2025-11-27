@@ -15,7 +15,6 @@ const MessageSchema = new mongoose.Schema({
   fileKey: {type: String},
   isApprovedForDownload: { type: Boolean, default: false },
 
-  // Message Schema (MongoDB - Mongoose)
  replyTo: {
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Message',
