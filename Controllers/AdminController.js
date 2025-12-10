@@ -191,12 +191,22 @@ const modifyUserInfo =async(req,res)=>{
     try{
         const {Id} = req.params
         const update = req.body
+        const notificationService = req.app.get("notificationService");
+        
         const user = await UserModel.findById(Id)
         if(!user){
             return res.status(404).json({message:"User not Found"})
         }
+        const oldVerificationStatus = user.isVerified;
         Object.assign(user,update)
         await user.save()
+        if (update.isVerified !== undefined && update.isVerified !== oldVerificationStatus) {
+      
+           await notificationService.sendVerificationStatusNotification({
+           userId: Id,
+           isVerified: update.isVerified
+         });
+        }
         res.status(200).json({messgae:"User Update Successful"})
 
 

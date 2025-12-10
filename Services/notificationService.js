@@ -608,6 +608,31 @@ async sendCuratedInvitationNotification({ tasker, taskId, taskTitle, clientName 
   });
 }
 
+
+async sendVerificationStatusNotification({ userId, isVerified }) {
+  try {
+    const user = await UserModel.findById(userId).select('name email');
+    const userName = user?.name || 'User';
+    
+    if (isVerified === true) {
+      return await this.sendNotification({
+        userId: userId,
+        title: "✅ Account Verified Successfully!",
+        message: `Congratulations ${userName}! Your account has been successfully verified. You can now start applying for tasks and unlock all platform features.`
+      });
+    } else if (isVerified === false) {
+      return await this.sendNotification({
+        userId: userId,
+        title: "⚠️ Verification Withdrawn",
+        message: `Dear ${userName}, your account verification has been withdrawn due to some concerns. If you believe this is a mistake or have any questions, please contact our support team for assistance.`
+      });
+    }
+  } catch (error) {
+    console.error('Send verification status notification error:', error);
+    throw error;
+  }
+}
+
 }
 
 module.exports = NotificationService;
