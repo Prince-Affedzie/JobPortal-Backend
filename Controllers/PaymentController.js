@@ -57,39 +57,39 @@ const verifyPayment = async (req, res) => {
 const releasePayment = async (req, res) => {
   try {
     const { reference } = req.params;
-    
+
     const payment = await Payment.findOne({ transactionRef: reference })
-    .populate('beneficiary','paystackRecipientCode')
-    .populate('taskId','status');
+      .populate('beneficiary', 'paystackRecipientCode')
+      .populate('taskId', 'status');
 
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
-    if(payment.taskId.status !== "Completed"){
-       return res.status(400).json({ message: 'This task must be completed before payment is released' });
+    if (payment.taskId.status !== "Completed") {
+      return res.status(400).json({ message: 'This task must be completed before payment is released' });
     }
-   
 
     if (payment.status !== 'in_escrow') {
-      return res
-        .status(400)
-        .json({ message: 'Payment not in escrow or already released/refunded' });
+      return res.status(400).json({
+        message: 'Payment not in escrow or already released/refunded',
+      });
     }
 
-    // Replace this with your stored beneficiary Paystack Recipient Code
     const recipientCode = payment.beneficiary.paystackRecipientCode;
     if (!recipientCode) {
-      return res
-        .status(400)
-        .json({ message: 'No Paystack recipient linked to beneficiary' });
+      return res.status(400).json({
+        message: 'No Paystack recipient linked to beneficiary',
+      });
     }
-
+    const companyFee = Math.round(payment.amount * 0.12);
+    const freelancerAmount = payment.amount - companyFee;   
+    const paystackAmount = freelancerAmount;
     const transferRes = await axios.post(
-      'https://api.paystack.co/transfer',
+      "https://api.paystack.co/transfer",
       {
-        source: 'balance',
-        amount: payment.amount, 
+        source: "balance",
+        amount: paystackAmount,
         recipient: recipientCode,
         reason: `Escrow release for task ${payment.taskId}`,
       },
@@ -103,21 +103,24 @@ const releasePayment = async (req, res) => {
     const transferData = transferRes.data.data;
 
     await Payment.findByIdAndUpdate(payment._id, {
-      status: 'released',
+      status: "released",
       releasedAt: new Date(),
       transferReference: transferData.reference,
+      companyFee: companyFee,
+      freelancerAmount: freelancerAmount,
     });
 
     res.status(200).json({
-      message: 'Payment released successfully',
+      message: "Payment released successfully (12% fee deducted)",
       transfer: transferData,
+      companyFee,
+      freelancerAmount,
     });
   } catch (err) {
     console.error(err.response?.data || err);
-    res.status(500).json({ message: 'Failed to release payment' });
+    res.status(500).json({ message: "Failed to release payment" });
   }
 };
-
 
 const refundPayment = async (req, res) => {
   try {
