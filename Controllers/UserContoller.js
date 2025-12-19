@@ -505,7 +505,7 @@ const chat = async (req, res) => {
        }
        findUser.role === 'job_seeker'?findUser.role = 'client':findUser.role = 'job_seeker'
        await findUser.save()
-       res.status(200).json({message:'Account Switch Successful'})
+       res.status(200).json({message:'Account Switch Successful',user:findUser})
 
 
     }catch(err){
