@@ -494,10 +494,29 @@ const chat = async (req, res) => {
       res.status(500).json({message:"Internal Server Error"})
     }
   }
+
+
+  const switchAccouunt = async(req,res)=>{
+    try{
+       const {id} = req.user
+       const findUser = await UserModel.findById(id)
+       if(!findUser){
+        res.status(404).json({message:'User Account not Found'})
+       }
+       findUser.role === 'job_seeker'?findUser.role = 'client':findUser.role = 'job_seeker'
+       await findUser.save()
+       res.status(200).json({message:'Account Switch Successful'})
+
+
+    }catch(err){
+      console.log(err)
+      res.status(500).json({message:"Internal Server Error"})
+    }
+  }
   
 
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
 module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
-    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, }
+    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, switchAccouunt }
