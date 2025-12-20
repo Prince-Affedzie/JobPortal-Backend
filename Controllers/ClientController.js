@@ -13,6 +13,7 @@ const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = requir
 
 const postMiniTask = async (req, res) => {
     try {
+      console.log('Processing')
         const { id } = req.user;
         const { title, description, budget, biddingType, deadline, locationType, address, category, subcategory, skillsRequired, requirements, media } = req.body;
         console.log(req.body)
@@ -104,7 +105,7 @@ const postMiniTask = async (req, res) => {
         await newTask.save();
         
         processEvent("NEW_MICRO_JOB_POSTING", newTask);
-        return res.status(200).json({ message: "Task Created Successfully" });
+         res.status(200).json({ message: "Task Created Successfully" });
     } catch (err) {
         console.log("Error in postMiniTask:", err);
         res.status(500).json({ message: "Internal server Error" });
