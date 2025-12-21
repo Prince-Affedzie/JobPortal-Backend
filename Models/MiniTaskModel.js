@@ -8,7 +8,7 @@ const bidSchema = new Schema({
     timeline: { type: String }, 
     status: { 
         type: String, 
-        enum: ["Pending", "Accepted", "Rejected"], 
+        enum: ["Pending", "Accepted", "Rejected","Withdrawn"], 
         default: "Pending" 
     },
     createdAt: { type: Date, default: Date.now }

@@ -449,6 +449,7 @@ const yourAppliedMiniTasks = async (req, res) => {
                             markDone: task.markedDoneByTasker
                         },
                         bid: {
+                             _id: userBid._id,
                             amount: userBid.amount,
                             message: userBid.message,
                             timeline: userBid.timeline,
@@ -808,6 +809,168 @@ const removeWorkSample = async (req, res) => {
 };
 
 
+const getBidById = async (req, res) => {
+    try {
+        const { bidId } = req.params;
+        const userId = req.user.id;
+
+        // Find the task that contains this bid
+        const task = await MiniTask.findOne({
+            'bids._id': bidId
+        }).populate('employer', 'name profileImage rating numberOfRatings isVerified')
+          .populate('bids.bidder', 'name profileImage');
+
+        if (!task) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Find the specific bid
+        const bid = task.bids.id(bidId);
+        
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Check if the current user is the bidder
+        if (bid.bidder._id.toString() !== userId) {
+            return res.status(403).json({ message: 'Unauthorized to view this bid' });
+        }
+
+        // Format the response
+        const bidData = {
+            _id: bid._id,
+            amount: bid.amount,
+            message: bid.message,
+            timeline: bid.timeline,
+            status: bid.status,
+            createdAt: bid.createdAt,
+            updatedAt: bid.updatedAt,
+            task: {
+                _id: task._id,
+                title: task.title,
+                description: task.description,
+                budget: task.budget,
+                deadline: task.deadline,
+                locationType: task.locationType,
+                category: task.category,
+                status: task.status,
+                employer: task.employer
+            }
+        };
+
+        res.status(200).json(bidData);
+    } catch (error) {
+        console.error('Error fetching bid:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+const updateBid = async (req, res) => {
+    try {
+        const { bidId } = req.params;
+        const userId = req.user.id;
+        const { amount, message, timeline } = req.body;
+
+        // Validation
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: 'Valid amount is required' });
+        }
+
+        // Find the task containing the bid
+        const task = await MiniTask.findOne({
+            'bids._id': bidId,
+            'bids.bidder': userId,
+            'bids.status': 'pending'  // Only allow updates for pending bids
+        });
+
+        if (!task) {
+            return res.status(404).json({ 
+                message: 'Bid not found or cannot be updated' 
+            });
+        }
+
+        // Check if task deadline hasn't passed
+        if (new Date(task.deadline) < new Date()) {
+            return res.status(400).json({ 
+                message: 'Cannot update bid after task deadline' 
+            });
+        }
+
+        // Find and update the bid
+        const bid = task.bids.id(bidId);
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Update bid fields
+        bid.amount = amount;
+        bid.message = message || bid.message;
+        bid.timeline = timeline || bid.timeline;
+        bid.updatedAt = new Date();
+
+        await task.save();
+
+        res.status(200).json({
+            message: 'Bid updated successfully',
+            bid: {
+                _id: bid._id,
+                amount: bid.amount,
+                message: bid.message,
+                timeline: bid.timeline,
+                status: bid.status,
+                updatedAt: bid.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error('Error updating bid:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+const withdrawBid = async (req, res) => {
+    try {
+        const { bidId } = req.params;
+        const userId = req.user.id;
+
+        // Find the task containing the bid
+        const task = await MiniTask.findOne({
+            'bids._id': bidId,
+            'bids.bidder': userId,
+            'bids.status': 'pending'  // Only allow withdrawal of pending bids
+        });
+
+        if (!task) {
+            return res.status(404).json({ 
+                message: 'Bid not found or cannot be withdrawn' 
+            });
+        }
+
+        // Update bid status to withdrawn
+        const bid = task.bids.id(bidId);
+        bid.status = 'Withdrawn';
+        bid.updatedAt = new Date();
+
+        // Remove bidder from applicants list
+        task.applicants = task.applicants.filter(
+            applicantId => applicantId.toString() !== userId
+        );
+
+        await task.save();
+
+        res.status(200).json({ 
+            message: 'Bid withdrawn successfully',
+            bidId: bidId
+        });
+    } catch (error) {
+        console.error('Error withdrawing bid:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
 module.exports = {
     applyToJob,
     viewAllApplications,
@@ -829,4 +992,8 @@ module.exports = {
     negotiateOnMiniTask,
     addWorkSamplesToProfile,
     removeWorkSample,
+    getBidById,
+    updateBid ,
+    withdrawBid,
+    
 };

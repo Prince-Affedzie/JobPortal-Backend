@@ -23,6 +23,9 @@ const {
     deletePaymentMethod,
     addWorkSamplesToProfile,
     removeWorkSample,
+     getBidById,
+     updateBid ,
+    withdrawBid,
 } = require("../Controllers/TaskerController.js");
 
 // Job application routes
@@ -60,5 +63,11 @@ taskerRouter.delete("/h1/v2/delete_payment_method/:methodId",verify_token, delet
 // Work sample adding
 taskerRouter.post("/h1/v2/add_work_sample_to_profile",verify_token,addWorkSamplesToProfile)
 taskerRouter.delete("/h1/v2/remove_work_sample_from_profile/:sampleId",verify_token,removeWorkSample)
+
+//Bid Management
+taskerRouter.get('/h1/v2/get_bid/:bidId',verify_token, getBidById);
+taskerRouter.put('/h1/v2/update_bid/:bidId', verify_token, updateBid);
+taskerRouter.delete('/h1/v2/withdraw_bid/:bidId',verify_token, withdrawBid);
+
 
 module.exports = { taskerRouter };
