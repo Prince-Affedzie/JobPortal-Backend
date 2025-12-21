@@ -871,6 +871,7 @@ const updateBid = async (req, res) => {
         const { bidId } = req.params;
         const userId = req.user.id;
         const { amount, message, timeline } = req.body;
+        
 
         // Validation
         if (!amount || amount <= 0) {
@@ -881,8 +882,10 @@ const updateBid = async (req, res) => {
         const task = await MiniTask.findOne({
             'bids._id': bidId,
             'bids.bidder': userId,
-            'bids.status': 'pending'  // Only allow updates for pending bids
+            'bids.status': 'Pending'  // Only allow updates for pending bids
         });
+
+        
 
         if (!task) {
             return res.status(404).json({ 
@@ -939,7 +942,7 @@ const withdrawBid = async (req, res) => {
         const task = await MiniTask.findOne({
             'bids._id': bidId,
             'bids.bidder': userId,
-            'bids.status': 'pending'  // Only allow withdrawal of pending bids
+            'bids.status': 'Pending'  // Only allow withdrawal of pending bids
         });
 
         if (!task) {

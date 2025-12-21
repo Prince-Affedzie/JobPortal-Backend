@@ -66,7 +66,7 @@ taskerRouter.delete("/h1/v2/remove_work_sample_from_profile/:sampleId",verify_to
 
 //Bid Management
 taskerRouter.get('/h1/v2/get_bid/:bidId',verify_token, getBidById);
-taskerRouter.put('/h1/v2/update_bid/:bidId', verify_token, updateBid);
+taskerRouter.put('/h1/v2/update_bid/:bidId', verify_token,updateBid);
 taskerRouter.delete('/h1/v2/withdraw_bid/:bidId',verify_token, withdrawBid);
 
 
