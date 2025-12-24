@@ -94,22 +94,34 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
 
 const searchRankedTaskers = async (lon, lat, searchQuery, maxDistance) => {
   let matchedUserIds = [];
+  let hasSearchQuery = false;
 
   if (searchQuery && searchQuery.trim() !== "") {
-    // STEP 1: TEXT SEARCH FIRST (No Geo Here)
+    hasSearchQuery = true;
+
     matchedUserIds = await UserModel.find(
       { $text: { $search: searchQuery } },
       { _id: 1 }
     ).lean();
-    
+
     matchedUserIds = matchedUserIds.map(u => u._id);
+
+    // 🚨 IMPORTANT: No matches → return empty result immediately
+    if (matchedUserIds.length === 0) {
+      return [];
+    }
   }
-  const pipeline = getTaskerSearchPipeline(lon, lat, matchedUserIds, maxDistance);
-  const taskers = await UserModel.aggregate(pipeline);
 
+  const pipeline = getTaskerSearchPipeline(
+    lon,
+    lat,
+    matchedUserIds,
+    maxDistance
+  );
 
-  return taskers;
-}
+  return await UserModel.aggregate(pipeline);
+};
+
 
 module.exports = {
     searchRankedTaskers,
