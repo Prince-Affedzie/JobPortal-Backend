@@ -62,8 +62,6 @@ app.use(cors({
 }))
 
 
-
-
  
 const server = http.createServer(app)
 
@@ -82,6 +80,7 @@ mongoose.connect(process.env.DB_URL,
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
          console.log("Listening on Port 5000")
+        
          
         
         
@@ -152,5 +151,3 @@ jobController.setSocketIO(io)
 disputeController.setSocketIO(io)
 jobControllerEmp.setSocketInstance(io)
 WorkSubmissionController.setSocketIO(io)
-
-

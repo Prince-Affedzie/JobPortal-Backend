@@ -524,40 +524,6 @@ const searchTaskers = async (req, res) => {
    
     let taskers = await searchRankedTaskers(lon, lat, searchQuery, maxDistance);
 
-   /*
-    if (taskers.length < 10 && skills.length > 0) {
-      const fallbackPipeline = [
-        {
-          $geoNear: {
-            near: { type: "Point", coordinates: [lon, lat] },
-            distanceField: "distance",
-            spherical: true,
-            maxDistance: Number(maxDistance),
-          },
-        },
-        { $match: baseMatch },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            rating: 1,
-            skills: 1,
-            profileImage: 1,
-            distance: 1,
-            "availability.status": 1,
-            location: 1,
-          },
-        },
-        { $sort: { distance: 1, rating: -1 } },
-        { $limit: 50 },
-      ];
-
-      const fallback = await UserModel.aggregate(fallbackPipeline);
-      taskers = [...taskers, ...fallback].filter(
-        (v, i, a) => a.findIndex((t) => t._id.toString() === v._id.toString()) === i
-      );
-    }*/
-
     return res.status(200).json({ success: true, data: taskers });
 
   } catch (error) {

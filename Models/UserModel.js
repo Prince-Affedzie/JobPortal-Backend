@@ -247,7 +247,7 @@ userSchema.index({
     
     name: 'text',
     skills: 'text',
-    'serviceTags.category': 'text',
+    //'serviceTags.category': 'text',
     'serviceTags.subcategory': 'text',
     
     
@@ -259,9 +259,9 @@ userSchema.index({
 }, {
     weights: {
         
-        'serviceTags.category': 15,
+        //'serviceTags.category': 15,
         'serviceTags.subcategory': 15,
-        skills: 12,
+        skills: 15,
         'workExperience.jobTitle': 10,
         name: 8,
         Bio: 5,

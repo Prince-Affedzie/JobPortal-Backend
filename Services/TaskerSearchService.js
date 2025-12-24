@@ -18,6 +18,7 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
   const RECENTLY_ACTIVE_BONUS = 40;
   const SEVEN_DAYS_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
+
   const baseFilters = {
     role: "job_seeker",
     isActive: true,
