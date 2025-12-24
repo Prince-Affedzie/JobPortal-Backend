@@ -487,7 +487,7 @@ const viewAllPayments = async(req,res)=>{
 
 const searchTaskers = async (req, res) => {
   try {
-    const { address, searchQuery, maxDistance = 100 } = req.body;
+    const { address, searchQuery, maxDistance = 60 } = req.body;
     console.log(searchQuery)
     
 
@@ -521,50 +521,7 @@ const searchTaskers = async (req, res) => {
       "availability.status": "available",
     };
 
-   /* const skillRegexArray = skills.map((s) => new RegExp(s, "i"));
-
-    const pipeline = [
-      {
-        $geoNear: {
-          near: { type: "Point", coordinates: [lon, lat] },
-          distanceField: "distance",
-          spherical: true,
-          maxDistance: Number(maxDistance),
-        },
-      },
-      { $match: baseMatch },
-      {
-        $addFields: {
-          skillMatchScore: {
-            $size: {
-              $setIntersection: ["$skills", skills],
-            },
-          },
-        },
-      },
-      {
-        $sort: {
-          skillMatchScore: -1,
-          rating: -1,
-          distance: 1,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          rating: 1,
-          skills: 1,
-          profileImage: 1,
-          distance: 1,
-          skillMatchScore: 1,
-          "availability.status": 1,
-          location: 1,
-        },
-      },
-      { $limit: 50 },
-    ];*/
-
+   
     let taskers = await searchRankedTaskers(lon, lat, searchQuery, maxDistance);
 
    /*

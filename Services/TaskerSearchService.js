@@ -12,8 +12,6 @@ const { UserModel } = require('../Models/UserModel');
  * @returns {Array} - The MongoDB aggregation pipeline stages.
  */
 const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
-  console.log('lon',lon)
-  console.log('lat',lat)
   const RATING_WEIGHT = 50;
   const VETTING_BONUS = 120;
   const PHOTO_BONUS = 30;
@@ -71,6 +69,7 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
       $project: {
         _id: 1,
         name: 1,
+        email:1,
         rating: 1,
         skills: 1,
         profileImage: 1,
@@ -104,10 +103,9 @@ const searchRankedTaskers = async (lon, lat, searchQuery, maxDistance) => {
     
     matchedUserIds = matchedUserIds.map(u => u._id);
   }
-  console.log(matchedUserIds)
   const pipeline = getTaskerSearchPipeline(lon, lat, matchedUserIds, maxDistance);
   const taskers = await UserModel.aggregate(pipeline);
-  console.log(taskers)
+
 
   return taskers;
 }
