@@ -7,6 +7,7 @@ const {MiniTask} =require("../Models/MiniTaskModel")
 const {Alert} =require("../Models/AlertModel")
 const EmployerProfile = require('../Models/EmployerProfile')
 const {Payment} = require('../Models/PaymentModel')
+const {getUploadURL, getPublicURL, deleteFromS3,deleteMultipleFromS3,} = require('../Services/aws_S3_file_Handling')
 
 const adminSignup = async(req,res)=>{
     const {name,email,password,} =req.body
@@ -222,6 +223,9 @@ const removeUser = async(req,res)=>{
         const user = await UserModel.findById(Id)
         if(!user){
             return res.status(400).json({message:'User not Found'})
+        }
+        if(user.profileImage){
+         deleteFromS3(user.profileImage).catch(console.error);
         }
         await user.deleteOne()
         res.status(200).json({message:'User Removed Successfully'})

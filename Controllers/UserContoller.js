@@ -5,7 +5,7 @@ const  cloudinary =require('../Config/Cloudinary')
 const streamifier = require('streamifier');
 const validator = require("validator")
 const CloudinaryFileUploadService  = require('../Services/cloudinaryFileUpload')
-const {getUploadURL, getPublicURL, deleteFromS3,deleteMultipleFromS3,} = require('../Services/aws_S3_file_Handling')
+const {getUploadURL, getPublicURL, deleteFromS3,deleteMultipleFromS3,deleteMultipleFromS3} = require('../Services/aws_S3_file_Handling')
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
 const {NotificationModel} = require('../Models/NotificationModel')
@@ -513,10 +513,33 @@ const chat = async (req, res) => {
       res.status(500).json({message:"Internal Server Error"})
     }
   }
+
+  const deleteAccount = async(req,res)=>{
+    try{
+      const {id} = req.user
+      const user =  await UserModel.findById(id)
+       if(!user){
+        res.status(404).json({message:'User Account not Found'})
+       }
+      if(user.profileImage){
+        deleteFromS3(user.profileImage).catch(console.error);
+       }
+       if(user.idCard){
+        deleteFromS3(user.idCard).catch(console.error);
+       }
+       await user.deleteOne()
+       res.status(200).json({message:"Account deleted Successfully"})
+
+    }catch(err){
+      console.log(err)
+      res.status(500).json({message:"Internal Server Error"})
+    }
+  }
   
 
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
 module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
-    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, switchAccouunt }
+    chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, 
+    switchAccouunt,deleteAccount }

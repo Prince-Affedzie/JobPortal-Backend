@@ -82,15 +82,18 @@ const releasePayment = async (req, res) => {
         message: 'No Paystack recipient linked to beneficiary',
       });
     }
-    const companyFee = Math.round(payment.amount * 0.12);
-    const freelancerAmount = payment.amount - companyFee;   
-    const paystackAmount = freelancerAmount;
+    const companyFee = parseFloat((payment.amount * 0.12).toFixed(2));
+    const freelancerAmount = parseFloat((payment.amount - companyFee).toFixed(2));   
+    const paystackAmount =  Math.floor(freelancerAmount);
+    console.log(recipientCode)
+    console.log(paystackAmount)
     const transferRes = await axios.post(
       "https://api.paystack.co/transfer",
       {
         source: "balance",
         amount: paystackAmount,
         recipient: recipientCode,
+        currency: 'GHS',
         reason: `Escrow release for task ${payment.taskId}`,
       },
       {
