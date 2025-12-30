@@ -8,6 +8,7 @@ const CloudinaryFileUploadService  = require('../Services/cloudinaryFileUpload')
 const {getUploadURL, getPublicURL, deleteFromS3,deleteMultipleFromS3} = require('../Services/aws_S3_file_Handling')
 const {UserModel} = require("../Models/UserModel")
 const {MiniTask} = require('../Models/MiniTaskModel')
+const {Service} = require('../Models/ServiceModel')
 const {NotificationModel} = require('../Models/NotificationModel')
 const {sendPasswordResetEmail} = require("../Services/emailService")
 const {processEvent} = require('../Services/adminEventService')
@@ -234,69 +235,120 @@ const editProfile = async(req,res)=>{
 
 
 
-const onboarding = async(req,res)=>{
-    try{
-         
-        const {phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage,idCard} = req.body
-        const {id} = req.user
-        const user = await UserModel.findById(id)
-        const serviceTags = [];
+const onboarding = async (req, res) => {
+    try {
+        const { 
+            phone, 
+            primaryService, 
+            secondaryServices, // Array of strings e.g., ["Cleaning", "Painting"]
+            skills, 
+            education, 
+            workExperience, 
+            workPortfolio, 
+            Bio, 
+            location, 
+            profileImage, 
+            idCard 
+        } = req.body;
+        
+        
+        const { id } = req.user;
+        const user = await UserModel.findById(id);
 
-        if(!user){
-            return res.status(404).json({message:"Account Doesn't Exist"})
+        if (!user) {
+            return res.status(404).json({ message: "Account Doesn't Exist" });
         }
-        const phoneExist = await UserModel.findOne({phone:phone})
-        if(phoneExist){
-          return res.status(403).json({message:"Phone Number Already Exist"})
+
+        // 1. Phone validation
+        if (phone && phone !== user.phone) {
+            const phoneExist = await UserModel.findOne({ phone: phone });
+            if (phoneExist) {
+                return res.status(403).json({ message: "Phone Number Already Exists" });
+            }
+            user.phone = phone;
         }
-        const addressString = `${location.street || ""}, ${location.town || ""}, ${
-          location.city || ""
-         }, ${location.region || ""}`;
 
+        // 2. Map standard fields
+        user.skills = skills || user.skills;
+        user.education = education || user.education;
+        user.workExperience = workExperience || user.workExperience;
+        user.Bio = Bio || user.Bio;
+        user.workPortfolio = workPortfolio || user.workPortfolio;
+        user.profileImage = profileImage || user.profileImage;
+        user.idCard = idCard || user.idCard;
 
-         const geo = await geocodeAddress(addressString);
-
-    
-
-        user.phone = phone || user.phone
-        user.skills = skills || user.skills
-        user.education = education || user.education
-        user.workExperience = workExperience || user.workExperience
-        user.Bio = Bio || user.Bio
-        user.workPortfolio = workPortfolio ||  user.workPortfolio
-        user.profileImage = profileImage || user.profileImage
-        user.idCard = idCard || user.idCard
+        // 3. Geocoding logic
+        const addressString = `${location?.street || ""}, ${location?.town || ""}, ${location?.city || ""}, ${location?.region || ""}`;
+        const geo = await geocodeAddress(addressString);
 
         if (geo) {
-         user.location = {
-          ...location,
-           latitude: geo.latitude,
-           longitude: geo.longitude,
-            coordinates: [geo.longitude, geo.latitude], 
-          };
-       }else{
-             user.location = location || user.location
-       }
+            user.location = {
+                ...location,
+                latitude: geo.latitude,
+                longitude: geo.longitude,
+                coordinates: [geo.longitude, geo.latitude],
+            };
+        } else {
+            user.location = location || user.location;
+        }
 
-       if(skills){
-          for (let skill of skills) {
-          const match = await getServiceTagFromSkill(skill);
-          if (match) serviceTags.push(match);
-         
-       }
-       }
+        // 4. Handle Service Tags from skills
+        const serviceTags = [];
+        if (skills) {
+            for (let skill of skills) {
+                const match = await getServiceTagFromSkill(skill);
+                if (match) serviceTags.push(match);
+            }
+        }
+        user.serviceTags = serviceTags;
 
-        user.serviceTags = serviceTags
-        await user.save()
-        res.status(200).json({message:"Profile Updated Successfully"})
+        // 5. PRIMARY SERVICE MAPPING
+        if (primaryService) {
+            const findService = await Service.findOne({ name: primaryService });
+            if (findService) {
+                user.primaryService = {
+                    serviceId: findService._id,
+                    serviceName: findService.name
+                };
+                
+                if (!findService.providers.includes(user._id)) {
+                    findService.providers.push(user._id);
+                    await findService.save();
+                }
+            }
+        }
 
+        if (secondaryServices && Array.isArray(secondaryServices)) {
+            const secondaryObjects = [];
+            
+            for (const serviceName of secondaryServices) {
+                const foundService = await Service.findOne({ name: serviceName });
+                
+                if (foundService) {
+                    secondaryObjects.push({
+                        serviceId: foundService._id,
+                        serviceName: foundService.name
+                    });
 
-       
-    }catch(err){
-        console.log(err)
-        res.status(500).json({message: "Internal Server Error"})
+                    
+                    if (!foundService.providers.includes(user._id)) {
+                        foundService.providers.push(user._id);
+                        await foundService.save();
+                    }
+                }
+            }
+            user.secondaryServices = secondaryObjects;
+        }
+
+        await user.save();
+        res.status(200).json({ message: "Profile Updated Successfully", user });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
     }
-}
+};
+
 
 const handleImageUpdate = async(req,res)=>{
     try{

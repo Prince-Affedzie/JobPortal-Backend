@@ -42,7 +42,7 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
       $addFields: {
         qualityScore: {
           $sum: [
-            { $cond: [{ $eq: ["$vettingStatus", "approved"] }, VETTING_BONUS, 0] },
+            { $cond: [{ $eq: ["$isverified", true] }, VETTING_BONUS, 0] },
             { $cond: [{ $ne: ["$profileImage", null] }, PHOTO_BONUS, 0] }
           ]
         },
@@ -72,6 +72,7 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
         name: 1,
         email:1,
         rating: 1,
+      "primaryService.serviceName":1,
         skills: 1,
         profileImage: 1,
         distance: 1,

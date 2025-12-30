@@ -33,18 +33,35 @@ const userSchema = new Schema(
       required: true,
       index: true, // common grouping field
     },
-    skills: [
+    primaryService: {
+      serviceId:{
+         type: mongoose.Schema.Types.ObjectId,
+         ref: "Service",
+        index: true,
+      }, 
+      serviceName:{type:String}  
+    },
+
+    secondaryServices: [
+       {
+    serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+    serviceName: String
+    }
+  ],
+
+  skills: [
       {
         type: String,
         default: [],
-        index: true, // for matching users by skill
+        index: true, 
       },
     ],
-    serviceTags: [{
+serviceTags: [{
     category: { type: String, required: true },
     subcategory: { type: String, required: true }
-  }], 
-    education: [
+  }],
+
+ education: [
       {
         certification: String,
         institution: String,
@@ -52,7 +69,7 @@ const userSchema = new Schema(
         yearOfCompletion: Date,
       },
     ],
-    workExperience: [
+workExperience: [
       {
         jobTitle: String,
         company: String,
@@ -61,7 +78,7 @@ const userSchema = new Schema(
         description: String,
       },
     ],
-    workPortfolio: [
+workPortfolio: [
       {
         title: String,
         files: [{ publicUrl: String, name: String }],
@@ -69,9 +86,9 @@ const userSchema = new Schema(
         description: String,
       },
     ],
-    profileImage: String,
-    idCard: String,
-    Bio: String,
+profileImage: String,
+idCard: String,
+Bio: String,
     location: {
       region: { type: String, index: true },
       city: { type: String, index: true },
@@ -103,28 +120,24 @@ const userSchema = new Schema(
       default: false,
       index: true,
     },
-    miniTaskEligible: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-    isActive: {
+
+  isActive: {
       type: Boolean,
       default: true,
       index: true,
     },
-    isVerified: {
+  isVerified: {
       type: Boolean,
       default: false,
       index: true,
     },
-    vettingStatus: {
+vettingStatus: {
       type: String,
       enum: ["not_applied", "pending", "approved", "rejected"],
       default: "not_applied",
       index: true,
     },
-    rating: {
+rating: {
       type: Number,
       default: 0,
       min: 0,
@@ -244,9 +257,12 @@ userSchema.index({ location: 1 });
 userSchema.index({ skills: 1, role: 1 }); 
 
 userSchema.index({
-    
+
+  'primaryService.serviceName': 'text',
+  'secondaryServices.serviceName':'text',
     name: 'text',
     skills: 'text',
+    
     //'serviceTags.category': 'text',
     'serviceTags.subcategory': 'text',
     
@@ -260,11 +276,13 @@ userSchema.index({
     weights: {
         
         //'serviceTags.category': 15,
-        'serviceTags.subcategory': 15,
-        skills: 15,
+        'primaryService.serviceName': 20,
+        'secondaryServices.serviceName':15,
+        'serviceTags.subcategory': 10,
+         skills: 12,
         'workExperience.jobTitle': 10,
-        name: 8,
-        Bio: 5,
+         name: 8,
+         Bio: 5,
         'workExperience.description': 3,
         'workPortfolio.title': 1,
     },
