@@ -161,7 +161,7 @@ const logout =async(req,res)=>{
 const editProfile = async(req,res)=>{
     try{
          
-        const {email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
+        const {name,email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
         
        
         const {id} = req.user
@@ -194,7 +194,7 @@ const editProfile = async(req,res)=>{
            deleteFromS3(oldProfileImage).catch(console.error);
            
         }
-        
+        user.name =name || user.name
         user.email = email || user.email
         user.phone = phone || user.phone
         user.skills = skills || user.skills
