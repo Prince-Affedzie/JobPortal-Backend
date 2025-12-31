@@ -119,6 +119,8 @@ const matchApplicantsWithPipeline = async (microtaskId, sortBy = "totalScore", o
         email: 1,
         phone: 1,
         skills: 1,
+        primaryService:1,
+        secondaryServices:1,
         createdAt:1,
         education: 1,
         workExperience: 1,

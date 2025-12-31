@@ -134,6 +134,8 @@ const getBids = async (req, res) => {
                 phone: bid.bidder?.phone,
                 profileImage: bid.bidder?.profileImage,
                 skills: bid.bidder?.skills,
+                primaryService: bid.bidder?.primaryService,
+                secondaryServices:bid.bidder?.secondaryServices,
                 education: bid.bidder?.education,
                 workExperience: bid.bidder?.workExperience,
                 workPortfolio: bid.bidder?.workPortfolio,
