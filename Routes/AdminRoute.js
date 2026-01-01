@@ -10,6 +10,9 @@ const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfil
     getTaskerDetails,updateTaskerStatus,getAllPayments,getASinglePayment,modifyPaymentStatus,
 } = require('../Controllers/AdminController')
 
+const {getAllServiceRequests,getServiceRequestById,getServiceRequestStats,updateServiceRequestStatus,assignTasker,
+cancelServiceRequest,deleteServiceRequest,} = require('../Controllers/AdminServiceRequestController')
+
 adminRouter.post('/admin/signUp',adminSignup)
 adminRouter.post('/admin/login',adminLogin)
 adminRouter.post('/admin/logout',verify_token,adminLogout)
@@ -44,4 +47,18 @@ adminRouter.put('/admin/update_tasker_status/:taskerId',verify_token,updateTaske
 adminRouter.get('/admin/get_all_payments',verify_token,getAllPayments)
 adminRouter.get('/admin/get_a_single_payment/:paymentId',verify_token,getASinglePayment)
 adminRouter.put('/admin/update_payment_record/:paymentId',verify_token,modifyPaymentStatus)
+
+
+
+
+// Service Request Management
+
+adminRouter.get("/admin/service/requests",verify_token, getAllServiceRequests);
+adminRouter.get("/admin/service/request/:id", verify_token, getServiceRequestById);
+adminRouter.patch("/admin/service/update/:id/status", verify_token, updateServiceRequestStatus);
+adminRouter.patch("/admin/service/request/:id/assign", verify_token, assignTasker);
+adminRouter.patch("/admin/service/request/:id/cancel", verify_token, cancelServiceRequest);
+adminRouter.delete("/admin/service/request/:id/delete", verify_token,deleteServiceRequest);
+adminRouter.get("/admin/service/requests/stats/overview", verify_token,getServiceRequestStats);
+
 module.exports = {adminRouter}
