@@ -321,19 +321,20 @@ const updateOffer = async (req, res) => {
  const markServiceCompleted = async (req, res) => {
   try {
     const { requestId } = req.params;
+    
     const tasker = req.user.id;
     const notificationService = req.app.get("notificationService");
 
 
     const request = await ServiceRequest.findById(requestId).populate('assignedTasker','_id name');
     if (!request) return res.status(404).json({ message: "Request not found" });
-    if (String(request.assignedTasker) !== String(tasker))
+    if (request.assignedTasker._id.toString() !== tasker.toString()){
       return res.status(403).json({ message: "Not authorized for this request" });
+      }
 
     request.markedDoneByTasker = true;
     request.taskerDoneAt = new Date() || null;
-    await request.save();
-
+   
     await notificationService.sendTaskerMarkedDoneNotification({
     clientId:request.client,
     taskTitle:request.type,
@@ -350,6 +351,7 @@ const updateOffer = async (req, res) => {
     }else{
        request.status = "Review"
     }
+    await request.save();
 
     res.status(200).json({ message: "Service marked as completed", request });
   } catch (err) {

@@ -5,9 +5,14 @@ const paymentSchema = new Schema(
   {
     taskId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "MiniTask",
+      refPath: 'taskType',
       required: true,
     },
+    taskType: {
+    type: String,
+    required: true,
+    enum: ['MiniTask', 'ServiceRequest'] 
+  },
     initiator: {
       type: mongoose.Schema.Types.ObjectId, 
       ref: "User",

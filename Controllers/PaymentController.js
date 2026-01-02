@@ -1,4 +1,6 @@
 const { Payment } = require('../Models/PaymentModel');
+const { MiniTask } = require("../Models/MiniTaskModel");
+const {ServiceRequest} = require( "../Models/ServiceRequestModel.js");
 const axios = require('axios');
 
 
@@ -19,6 +21,20 @@ const verifyPayment = async (req, res) => {
      const { id } = req.user;
      const { reference } = req.params;
      const { taskId, beneficiary, amount } = req.body;
+     let taskType
+     const [miniTaskExists, serviceRequestExists] = await Promise.all([
+       MiniTask.exists({ _id: taskId }),
+       ServiceRequest.exists({ _id: taskId })
+      ]);
+
+    if (miniTaskExists) {
+     taskType = "MiniTask";
+   } else if (serviceRequestExists) {
+     taskType = "ServiceRequest";
+   } else {
+    return res.status(404).json({ message: "Task or Service Request not Found" });
+   }
+
 
     const verifyRes = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
@@ -30,14 +46,16 @@ const verifyPayment = async (req, res) => {
     );
 
     const data = verifyRes.data.data;
+    const verifiedAmount = data.amount / 100;
 
     if (data.status === 'success') {
       
       await Payment.create({
       taskId,
+      taskType,
       initiator: id,
       beneficiary,
-      amount,
+      amount:verifiedAmount,
       transactionRef: reference,
       status: 'in_escrow',
       paymentMethod: data.channel,
@@ -55,6 +73,7 @@ const verifyPayment = async (req, res) => {
 };
 
 const releasePayment = async (req, res) => {
+  const { v4: uuidv4 } = await import('uuid');
   try {
     const { reference } = req.params;
 
@@ -65,6 +84,10 @@ const releasePayment = async (req, res) => {
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
+
+    if (!payment.taskId) {
+    return res.status(404).json({ message: 'Task details not found' });
+  }
 
     if (payment.taskId.status !== "Completed") {
       return res.status(400).json({ message: 'This task must be completed before payment is released' });
@@ -79,21 +102,29 @@ const releasePayment = async (req, res) => {
     const recipientCode = payment.beneficiary.paystackRecipientCode;
     if (!recipientCode) {
       return res.status(400).json({
-        message: 'No Paystack recipient linked to beneficiary',
+        message: 'No Paystack recipient linked to beneficiary. Please make sure to add a payment method and set it as default',
       });
     }
     const companyFee = parseFloat((payment.amount * 0.12).toFixed(2));
     const freelancerAmount = parseFloat((payment.amount - companyFee).toFixed(2));   
     const paystackAmount =  Math.floor(freelancerAmount);
-    console.log(recipientCode)
-    console.log(paystackAmount)
+    const paystackAmountInPesewas = Math.round(freelancerAmount * 100);
+    const payoutreference = uuidv4();
+   
+const checkBalance = await axios.get("https://api.paystack.co/balance", {
+  headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+});
+
+console.log(checkBalance.data.data)
+
     const transferRes = await axios.post(
       "https://api.paystack.co/transfer",
       {
         source: "balance",
-        amount: paystackAmount,
+        amount: paystackAmountInPesewas,
         recipient: recipientCode,
         currency: 'GHS',
+        reference: payoutreference,
         reason: `Escrow release for task ${payment.taskId}`,
       },
       {
