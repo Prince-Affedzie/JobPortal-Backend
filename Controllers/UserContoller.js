@@ -17,9 +17,48 @@ const {getServiceTagFromSkill} = require('../Services/serviceTagAssignment')
 const fs = require('fs');
 const path = require('path');
 const io = require('../app')
-
+const { OAuth2Client } = require('google-auth-library');
 const client = new StreamChat('c9tbyybnmgwt','a3mkxyqbncbd3q8uq3n6gvxjpwzrcb6pwrdp65tnuxvn75angqecgtck8wzph7wg');
 const { uploader } = cloudinary; 
+
+const googleclient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const signUpByGoogle = async (req, res) => {
+  const { token, role } = req.body; 
+
+  try {
+   
+    const ticket = await googleclient.verifyIdToken({
+        idToken: token,
+        audience: [
+          process.env.GOOGLE_WEB_CLIENT_ID,
+          process.env.GOOGLE_ANDROID_CLIENT_ID,
+          process.env.GOOGLE_IOS_CLIENT_ID
+        ],
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+
+    let user = await UserModel.findOne({ email });
+    if (!user) {
+     
+      user = await UserModel.create({
+        email,
+        name,
+        role, 
+        
+      });
+    }
+
+    const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
+    res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
+    processEvent("NEW_USER",user);
+    res.status(200).json({message:"Registration Successful",role:user.role,user:user,token:apptoken})
+  } catch (error) {
+    res.status(401).json({ message: "Invalid Google Token" });
+  }
+};
 
 
 const signUp = async(req,res)=>{
@@ -592,6 +631,6 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
+module.exports = {signUpByGoogle,signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, 
     switchAccouunt,deleteAccount }

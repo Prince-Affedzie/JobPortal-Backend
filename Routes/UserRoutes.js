@@ -1,6 +1,6 @@
 const express = require("express")
 const userRouter = express.Router()
-const {signUp,login,logout,onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
+const {signUpByGoogle,signUp,login,logout,onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
   switchAccouunt,   markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword,updatePushToken,deleteAccount} = require('../Controllers/UserContoller')
 const {generatePortfolioUploadURL,generateProfileImageUploadURL,generateIdCardUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
@@ -8,6 +8,7 @@ const {validateInput} = require('../Validators/ValidatePassword')
 const {verify_token} = require("../MiddleWare/VerifyToken")
 
 userRouter.post("/user/signup",validateInput,signUp)
+userRouter.post("/user/google-signup",signUpByGoogle)
 userRouter.post("/user/login",login)
 userRouter.post("/user/request-password-reset",requestPasswordReset)
 userRouter.post("/user/reset-password",verify_token,resetPassword)

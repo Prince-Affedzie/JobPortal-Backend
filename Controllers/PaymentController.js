@@ -111,11 +111,6 @@ const releasePayment = async (req, res) => {
     const paystackAmountInPesewas = Math.round(freelancerAmount * 100);
     const payoutreference = uuidv4();
    
-const checkBalance = await axios.get("https://api.paystack.co/balance", {
-  headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-});
-
-console.log(checkBalance.data.data)
 
     const transferRes = await axios.post(
       "https://api.paystack.co/transfer",

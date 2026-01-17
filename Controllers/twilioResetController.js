@@ -2,15 +2,15 @@ const express = require('express');
 const twilioRouter = express.Router();
 const twilio = require('twilio');
 const bcrypt = require('bcryptjs');
-const { UserModel } = require('../Models/UserModel'); // Adjust path to your user model
+const { UserModel } = require('../Models/UserModel'); 
 
-// Your Twilio credentials
+
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const verifySid = process.env.TWILIO_VERIFY_SID;
 
 const formatPhoneNumber = (phone) => {
   if (!phone.startsWith("+")) {
-    // Assume Ghana (+233)
+    
     if (phone.startsWith("0")) {
       return "+233" + phone.slice(1);
     }
