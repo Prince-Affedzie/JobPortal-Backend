@@ -100,6 +100,47 @@ const signUp = async(req,res)=>{
 
 }
 
+
+const google_login = async(req,res)=>{
+   const {token} = req.body
+   console.log("Logging In")
+
+    try{
+        
+        const ticket = await googleclient.verifyIdToken({
+        idToken: token,
+        audience: [
+          process.env.GOOGLE_WEB_CLIENT_ID,
+          process.env.GOOGLE_ANDROID_CLIENT_ID,
+          process.env.GOOGLE_IOS_CLIENT_ID
+        ],
+      });
+
+    const payload = ticket.getPayload();
+    const { email } = payload;
+
+    const lowerCaseEmail = email.toLowerCase()
+    const findUser = await UserModel.findOne({email:lowerCaseEmail})
+               .populate({
+               path: 'ratingsReceived.ratedBy',
+               select: 'name profileImage role email phone'
+              })
+              .exec();
+        if(!findUser){
+            return res.status(404).json({message: "Account doesn't Exist"})
+        }
+       
+        const apptoken = jwt.sign({id:findUser._id,role:findUser.role},process.env.token,{expiresIn:"1d"})
+        res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
+        res.status(200).json({message:"Login Successful",role:findUser.role,user:findUser,token:apptoken})
+
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({message: "Internal Server Error"})
+    }
+
+}
+
 const login = async(req,res)=>{
     const {email,password} = req.body
    console.log("Logging In")
@@ -631,6 +672,6 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUpByGoogle,signUp,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
+module.exports = {signUpByGoogle,signUp,google_login,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, 
     switchAccouunt,deleteAccount }
