@@ -127,7 +127,7 @@ const google_login = async(req,res)=>{
               })
               .exec();
         if(!findUser){
-            return res.status(404).json({message: "Account doesn't Exist. Please sign up first"})
+            return res.status(404).json({message: "Account Not Found. Please sign up first"})
         }
        
         const apptoken = jwt.sign({id:findUser._id,role:findUser.role},process.env.token,{expiresIn:"1d"})
@@ -157,7 +157,7 @@ const login = async(req,res)=>{
               })
               .exec();
         if(!findUser){
-            return res.status(404).json({message: "Account doesn't Exist. Please sign up first"})
+            return res.status(404).json({message: "Account Not Found. Please sign up first"})
         }
         const isPasswordMatch = await bcrypt.compare(password,findUser.password)
         if(!isPasswordMatch){
