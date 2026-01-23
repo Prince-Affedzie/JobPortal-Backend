@@ -16,6 +16,20 @@ class NotificationService {
    * @param {string} options.title - Notification title
    * @returns {Promise<Notification>} The created notification
    */
+
+   
+  resolveRoleMessage({ role, templates, fallback }) {
+  if (!role) return fallback;
+
+  return templates[role] || fallback;
+ }
+
+
+ formatAdminTitle(title) {
+  return title?.startsWith('📢') ? title : `📢 ${title}`;
+}
+
+
   async sendNotification({ userId, message, title }) {
     try {
 
@@ -632,6 +646,103 @@ async sendVerificationStatusNotification({ userId, isVerified }) {
     throw error;
   }
 }
+
+
+/**
+ * Sends role-based welcome notification on signup
+ */
+async sendWelcomeNotification(userId) {
+  try {
+    const user = await UserModel.findById(userId).select('name role');
+    if (!user) return;
+
+    const userName = user.name || 'there';
+
+    const title = "🎉 Welcome to Workaflow!";
+
+    const message = this.resolveRoleMessage({
+      role: user.role,
+      templates: {
+        client: `Hi ${userName}! 👋  
+Welcome to Workaflow. You can now post tasks, find verified taskers, and get things done fast.  
+Post your first request to get started 🚀`,
+
+        job_seeker: `Hi ${userName}! 👋  
+Welcome to Workaflow. You can now find real jobs, submit offers, and earn money from your skills.  
+Complete your profile to get more jobs 💼🔥`,
+
+      },
+      fallback: `Hi ${userName}! Welcome to Workaflow 👋`
+    });
+
+    return await this.sendNotification({
+      userId,
+      title,
+      message
+    });
+  } catch (error) {
+    console.error('Send welcome notification error:', error);
+  }
+}
+
+async adminNotifyUser({ userId, title, message }) {
+  try {
+    return await this.sendNotification({
+      userId,
+      title: this.formatAdminTitle(title),
+      message
+    });
+  } catch (error) {
+    console.error('Admin notify user error:', error);
+  }
+}
+
+
+async adminNotifyUsersByRole({ role, title, message }) {
+  try {
+    const query =
+      role === 'both'
+        ? { role: { $in: ['job_seeker', 'client'] } }
+        : { role };
+
+    const users = await UserModel.find(query).select('_id');
+
+    for (const user of users) {
+      await this.sendNotification({
+        userId: user._id,
+        title: this.formatAdminTitle(title),
+        message
+      });
+    }
+
+    console.log(`Admin notification sent to ${users.length} ${role} users`);
+  } catch (error) {
+    console.error('Admin notify users by role error:', error);
+  }
+}
+
+
+/**
+ * Admin broadcasts notification to all users
+ */
+async adminBroadcastNotification({ title, message }) {
+  try {
+    const users = await UserModel.find({}).select('_id');
+
+    for (const user of users) {
+      await this.sendNotification({
+        userId: user._id,
+        title: this.formatAdminTitle(title),
+        message
+      });
+    }
+
+    console.log(`Admin broadcast sent to ${users.length} users`);
+  } catch (error) {
+    console.error('Admin broadcast notification error:', error);
+  }
+}
+
 
 }
 

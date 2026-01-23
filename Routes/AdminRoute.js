@@ -13,6 +13,8 @@ const {adminSignup,adminLogin,adminLogout,adminEditProfile,removeJob,adminProfil
 const {getAllServiceRequests,getServiceRequestById,getServiceRequestStats,updateServiceRequestStatus,assignTasker,
 cancelServiceRequest,deleteServiceRequest,} = require('../Controllers/AdminServiceRequestController')
 
+const {sendRoleBasedNotification ,broadCastNotification,sendSingleUserNotification} = require('../Controllers/AdminNotificationController')
+
 adminRouter.post('/admin/signUp',adminSignup)
 adminRouter.post('/admin/login',adminLogin)
 adminRouter.post('/admin/logout',verify_token,adminLogout)
@@ -61,4 +63,12 @@ adminRouter.patch("/admin/service/request/:id/cancel", verify_token, cancelServi
 adminRouter.delete("/admin/service/request/:id/delete", verify_token,deleteServiceRequest);
 adminRouter.get("/admin/service/requests/stats/overview", verify_token,getServiceRequestStats);
 
+
+// Notification Controller Routes
+adminRouter.post('/admin/send-single-user/notification/:userId',verify_token,sendSingleUserNotification)
+adminRouter.post('/admin/send-broadcast/notification',verify_token,broadCastNotification)
+adminRouter.post('/admin/send-role-based/notification',verify_token,sendRoleBasedNotification)
+
 module.exports = {adminRouter}
+
+

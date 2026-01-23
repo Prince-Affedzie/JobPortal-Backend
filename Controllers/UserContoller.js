@@ -24,8 +24,9 @@ const { uploader } = cloudinary;
 const googleclient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const signUpByGoogle = async (req, res) => {
-  const { token, role } = req.body; 
-
+  const { token, role } = req.body;
+  const notificationService = req.app.get("notificationService");
+        
   try {
    
     const ticket = await googleclient.verifyIdToken({
@@ -58,17 +59,19 @@ const signUpByGoogle = async (req, res) => {
     const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
     res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
     processEvent("NEW_USER",user);
+    await notificationService.sendWelcomeNotification(user._id)
+
     res.status(200).json({message:"Registration Successful",role:user.role,user:user,token:apptoken})
   } catch (error) {
     res.status(401).json({ message: "Invalid Google Token" });
   }
 };
 
-
+//sendWelcomeNotification
 const signUp = async(req,res)=>{
     
     const {name,email,role,password,} =req.body
-    console.log("Signing Up")
+    const notificationService = req.app.get("notificationService");
 
     try{
     if(!name || !email || !role || !password){
@@ -96,6 +99,7 @@ const signUp = async(req,res)=>{
     const token = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
     res.cookie("token",token,{httpOnly:true,sameSite:"None",secure:true})
     processEvent("NEW_USER",user);
+    await notificationService.sendWelcomeNotification(user._id)
     res.status(200).json({message:"Registration Successful",role:user.role,user:user,token:token})
 }catch(err){
     console.log(err)
