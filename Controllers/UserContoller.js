@@ -38,7 +38,7 @@ const signUpByGoogle = async (req, res) => {
     });
     
     const payload = ticket.getPayload();
-    const { email, name, picture, sub: googleId } = payload;
+    const { email, name,phone, picture, sub: googleId } = payload;
 
     let user = await UserModel.findOne({ email });
     if (!user) {
@@ -46,9 +46,13 @@ const signUpByGoogle = async (req, res) => {
       user = await UserModel.create({
         email,
         name,
-        role, 
+        role,
+        phone, 
         
       });
+    }
+    if(phone) {
+      user.phone = phone
     }
 
     const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"})
@@ -340,15 +344,16 @@ const onboarding = async (req, res) => {
         }
 
         // 1. Phone validation
-        if (phone && phone !== user.phone) {
+       /* if (phone && phone !== user.phone) {
             const phoneExist = await UserModel.findOne({ phone: phone });
             if (phoneExist) {
                 return res.status(403).json({ message: "Phone Number Already Exists" });
             }
             user.phone = phone;
-        }
+        }*/
 
         // 2. Map standard fields
+        user.phone = phone || user.phone
         user.skills = skills || user.skills;
         user.education = education || user.education;
         user.workExperience = workExperience || user.workExperience;
