@@ -259,7 +259,7 @@ const editProfile = async(req,res)=>{
         const {id} = req.user
         const user = await UserModel.findById(id)
         if(!user){
-            return res.staus(404).json("Account Doesn't Exist")
+            return res.status(404).json({message: "Account Doesn't Exist"})
         }
         const oldProfileImage = user.profileImage
 
@@ -315,42 +315,70 @@ const editProfile = async(req,res)=>{
      ];
      }
 
+        // FIX 1: Extract service name properly
         if (primaryService) {
-          const findService = await Service.findOne({ name: primaryService.serviceName});
-           if (findService) {
+          // Handle both string and object formats
+          let serviceName;
+          
+          if (typeof primaryService === 'string') {
+            serviceName = primaryService;
+          } else if (primaryService && primaryService.serviceName) {
+            serviceName = primaryService.serviceName;
+          } else if (primaryService && primaryService.name) {
+            serviceName = primaryService.name;
+          }
+          
+          if (serviceName) {
+            const findService = await Service.findOne({ name: serviceName });
+            if (findService) {
               user.primaryService = {
                 serviceId: findService._id,
                 serviceName: findService.name
               };
                 
-            if (!findService.providers.includes(user._id)) {
-             findService.providers.push(user._id);
-              await findService.save();
+              if (!findService.providers.includes(user._id)) {
+                findService.providers.push(user._id);
+                await findService.save();
+              }
             }
-            }
+          }
         }
 
+        // FIX 2: Handle secondaryServices properly
         if (secondaryServices && Array.isArray(secondaryServices)) {
             const secondaryObjects = [];
             
-            for (const serviceName of secondaryServices) {
-                const foundService = await Service.findOne({ name: serviceName });
+            for (const serviceData of secondaryServices) {
+                let serviceName;
                 
-                if (foundService) {
-                    secondaryObjects.push({
-                        serviceId: foundService._id,
-                        serviceName: foundService.name
-                    });
-
+                // Handle different formats
+                if (typeof serviceData === 'string') {
+                    serviceName = serviceData;
+                } else if (serviceData && serviceData.serviceName) {
+                    serviceName = serviceData.serviceName;
+                } else if (serviceData && serviceData.name) {
+                    serviceName = serviceData.name;
+                }
+                
+                if (serviceName) {
+                    const foundService = await Service.findOne({ name: serviceName });
                     
-                    if (!foundService.providers.includes(user._id)) {
-                        foundService.providers.push(user._id);
-                    await foundService.save();
+                    if (foundService) {
+                        secondaryObjects.push({
+                            serviceId: foundService._id,
+                            serviceName: foundService.name
+                        });
+
+                        if (!foundService.providers.includes(user._id)) {
+                            foundService.providers.push(user._id);
+                            await foundService.save();
+                        }
                     }
                 }
             }
             user.secondaryServices = secondaryObjects;
         }
+        
     await user.save()
     res.status(200).json({message:"Profile Updated Successfully"})
 
@@ -361,8 +389,6 @@ const editProfile = async(req,res)=>{
         res.status(500).json({message: "Internal Server Error"})
     }
 }
-
-
 
 const onboarding = async (req, res) => {
     try {
