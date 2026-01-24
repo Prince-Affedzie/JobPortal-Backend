@@ -6,6 +6,7 @@ const sendSingleUserNotification = async(req,res)=>{
         const{title,message} =req.body
         // adminNotifyUser
         await  notificationService.adminNotifyUser({userId,title,message})
+        res.status(200)({message:'Notification sent sucessfully'})
 
     }catch(err){
          res.status(500).json({message:"Internal Server Error"})
@@ -19,6 +20,7 @@ const broadCastNotification = async(req,res)=>{
     try{
         const {title,message} = req.body
         await notificationService.adminBroadcastNotification({title,message})
+        res.status(200)({message:'Notification sent sucessfully'})
 
     }catch(err){
         res.status(500).json({message:"Internal Server Error"})
@@ -32,6 +34,7 @@ const sendRoleBasedNotification = async(req,res)=>{
     try{
         const {role,title,message} = req.body
         await notificationService.adminNotifyUsersByRole({role,title,message})
+        res.status(200)({message:'Notification sent sucessfully'})
 
     }catch(err){
         res.status(500).json({message:"Internal Server Error"})
