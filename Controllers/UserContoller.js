@@ -249,7 +249,11 @@ const logout =async(req,res)=>{
 const editProfile = async(req,res)=>{
     try{
          
-        const {name,email,phone,skills,education,workExperience,workPortfolio,Bio,location,profileImage} = req.body
+        const {name,email,phone,skills,education,workExperience,
+          workPortfolio,Bio,location,profileImage,
+          primaryService, 
+          secondaryServices,
+          } = req.body
         
        
         const {id} = req.user
@@ -292,7 +296,7 @@ const editProfile = async(req,res)=>{
         user.workPortfolio = workPortfolio ||  user.workPortfolio
         user.profileImage =profileImage || user.profileImage
 
-        if (skills) {
+      if (skills) {
    
        const newServiceTags = []; 
 
@@ -310,8 +314,45 @@ const editProfile = async(req,res)=>{
         ...newServiceTags 
      ];
      }
-        await user.save()
-        res.status(200).json({message:"Profile Updated Successfully"})
+
+        if (primaryService) {
+          const findService = await Service.findOne({ name: primaryService.serviceName});
+           if (findService) {
+              user.primaryService = {
+                serviceId: findService._id,
+                serviceName: findService.name
+              };
+                
+            if (!findService.providers.includes(user._id)) {
+             findService.providers.push(user._id);
+              await findService.save();
+            }
+            }
+        }
+
+        if (secondaryServices && Array.isArray(secondaryServices)) {
+            const secondaryObjects = [];
+            
+            for (const serviceName of secondaryServices) {
+                const foundService = await Service.findOne({ name: serviceName });
+                
+                if (foundService) {
+                    secondaryObjects.push({
+                        serviceId: foundService._id,
+                        serviceName: foundService.name
+                    });
+
+                    
+                    if (!foundService.providers.includes(user._id)) {
+                        foundService.providers.push(user._id);
+                    await foundService.save();
+                    }
+                }
+            }
+            user.secondaryServices = secondaryObjects;
+        }
+    await user.save()
+    res.status(200).json({message:"Profile Updated Successfully"})
 
 
        
