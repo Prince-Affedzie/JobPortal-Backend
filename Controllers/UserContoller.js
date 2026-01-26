@@ -79,7 +79,7 @@ const signUp = async(req,res)=>{
     }
 
     if(!validator.isEmail(email)){
-        return res.status(400).json({message:"Invalid Email"})
+        return res.status(401).json({message:"Invalid Email"})
     }
     const lowerCaseEmail = email.toLowerCase()
     const userExist = await UserModel.findOne({email: lowerCaseEmail })
