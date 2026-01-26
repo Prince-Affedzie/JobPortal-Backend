@@ -43,7 +43,6 @@ const signUpByGoogle = async (req, res) => {
 
     let user = await UserModel.findOne({ email });
     if (!user) {
-     
       user = await UserModel.create({
         email,
         name,
@@ -51,7 +50,10 @@ const signUpByGoogle = async (req, res) => {
         phone, 
         
       });
+    }else{
+       return res.status(400).json({mesaage: "Email had Already been taken"})
     }
+
     if(phone) {
       user.phone = phone
     }
