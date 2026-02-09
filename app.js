@@ -65,6 +65,20 @@ app.use(cors({
 }))
 
 
+const runMigrations = async () => {
+    try {
+      await UserModel.updateMany(
+        {}, 
+        { $set: { credits: 12} }
+      );
+      console.log('All users updated with default verification status');
+    } catch (err) {
+      console.error('Error during migration:', err);
+    }
+  };
+
+
+
  
 const server = http.createServer(app)
 
@@ -84,11 +98,6 @@ mongoose.connect(process.env.DB_URL,
          server.listen(process.env.PORT || 5000,()=>{
          console.log("Listening on Port 5000")
          
-        
-         
-        
-        
-        
         })
        })
        .catch((err)=>{
@@ -117,19 +126,20 @@ const { broadcastAdminAlert } = initAdminSocketIO(io);
 require('./Services/adminEventService').setBroadcaster(broadcastAdminAlert);
 app.set('broadcastAdminAlert', broadcastAdminAlert);
 io.use(authenticateSocketConnection)
+const notificationService = new NotificationService(io);
 
 io.on('connection',(socket)=>{
     const userId = socket.user.id
     console.log('Someone joined the connection')
     socket.join(userId)
-    socketHandler(io,socket)
+    socketHandler(io,socket,notificationService)
 
     socket.on('disconnect',()=>{
         console.log("User Disconnected")
     })
 
 })
-const notificationService = new NotificationService(io);
+
 app.use("/api",userRouter)
 app.use("/api",employerRoute)
 //app.use("/api",seekRouter)

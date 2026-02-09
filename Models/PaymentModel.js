@@ -11,7 +11,7 @@ const paymentSchema = new Schema(
     taskType: {
     type: String,
     required: true,
-    enum: ['MiniTask', 'ServiceRequest'] 
+    enum: ['MiniTask'] 
   },
     initiator: {
       type: mongoose.Schema.Types.ObjectId, 

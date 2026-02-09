@@ -73,6 +73,7 @@ const getTaskerSearchPipeline = (lon, lat, matchedUserIds, maxDistance) => {
         email:1,
         rating: 1,
       "primaryService.serviceName":1,
+      "primaryService.serviceId":1,
         secondaryServices:1,
         skills: 1,
         profileImage: 1,

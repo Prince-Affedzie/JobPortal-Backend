@@ -1,332 +1,189 @@
-const {ServiceRequest} = require( "../Models/ServiceRequestModel.js");
-const ConversationRoom = require('../Models/ConversationRoom');
+const Booking = require("../Models/ServiceRequestModel");
 
-const {Service} = require("../Models/ServiceModel.js");
-const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = require('../Services/aws_S3_file_Handling');
+const generateSixDigitPin = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 
- const createServiceRequest = async (req, res) => {
+const createBooking = async (req, res) => {
   try {
-    const {type, description, address,requirements, preferredDate, preferredTime, budget, urgency, media,taskerIds } = req.body;
     const clientId = req.user.id;
-    const notificationService = req.app.get("notificationService");
-  
-     const serviceRequest = new ServiceRequest({
-      client: clientId,
-      type,
+    const {
+      tasker,
+      service,
       description,
       address,
-      requirements: requirements || [],
-      media: media || [],
       preferredDate,
       preferredTime,
-      urgency,
-      budget,
-      notifiedTaskers: taskerIds || [], 
-      status: "Pending"
+      media,
+    } = req.body;
+    console.log(req.body)
+
+    const booking = new Booking({
+      client: clientId,
+      tasker,
+      service,
+      description,
+      address,
+      preferredDate,
+      preferredTime,
+      media: media || [],
+      status: "PENDING",
     });
 
-    await serviceRequest.save()
+    await booking.save();
 
-    
-     if (taskerIds && taskerIds.length > 0) {
-      await notificationService.notifyTaskersForNewRequest(
-        taskerIds,
-        serviceRequest._id,
-        clientId
-      );
-    }
+    // notify tasker
+    const notificationService = req.app.get("notificationService");
+    await notificationService.notifyTaskerNewBooking(tasker, booking._id);
 
-    res.status(200).json({ message: "Service request created successfully"});
+    res.status(201).json({
+      message: "Booking sent successfully",
+      bookingId: booking._id,
+    });
   } catch (err) {
-    console.error("Error creating service request:", err);
+    console.error("Create booking error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 
- const getClientRequests = async (req, res) => {
+const getClientBookings = async (req, res) => {
   try {
     const client = req.user.id;
-    const requests = await ServiceRequest.find({ client })
-      .populate('assignedTasker')
-      .populate('offers.tasker')
-      .sort({ createdAt: -1 })
 
-    res.status(200).json(requests);
+    const bookings = await Booking.find({ client })
+      .populate("tasker", "name profileImage")
+      .populate("service")
+      .sort({ createdAt: -1 });
+    res.status(200).json(bookings);
   } catch (err) {
-    console.error("Error fetching client requests:", err);
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
- const getSingleServiceRequest = async(req,res)=>{
-    try{
 
-        const {requestId} = req.params
-        const client = req.user.id
-        
-     const request = await ServiceRequest.findOne({ _id:requestId, client })
-          .populate("assignedTasker")
-          .populate('offers.tasker')
-          .populate('notifiedTaskers');
-     
-      if (!request) return res.status(404).json({ message: "Request not found" });
-      res.status(200).json(request)
-
-    }catch (err) {
-    console.error("Error fetching client requests:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-
-const updateServiceRequest = async(req,res)=>{
-  try{
-        
-        const {requestId} = req.params
-        const update = req.body
-        const client = req.user.id
-        const notificationService = req.app.get("notificationService");
-
-         const request = await ServiceRequest.findOne({ _id:requestId, client })
-         if (!request) return res.status(404).json({ message: "Request not found" });
-         if (['Booked', 'In-progress', 'Completed'].includes(request.status)) {
-        return res.status(400).json({
-        success: false,
-        message: 'Cannot make changes to This Service Request'
-      });
-    }
-
-       Object.assign(request,update)
-       await request.save()
-       //console.log(request.notifiedTaskers)
-    
-       const taskerIds = request.notifiedTaskers.map(id => id.toString());
-       await notificationService.notifyTaskersAboutRequestUpdate({
-       taskerIds:taskerIds,
-       requesTitle:request.type,
-       clientId:client
-     });
-
-
-      return res.status(200).json({message:"Service Updated Successfully"})
-  }catch (err) {
-    console.error("Error fetching client requests:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-
-
-const acceptOffer = async (req, res) => {
+const confirmCompletion = async (req, res) => {
   try {
-    const { requestId, offerId } = req.params;
+    const { bookingId } = req.params;
     const clientId = req.user.id;
     const notificationService = req.app.get("notificationService");
 
-    const serviceRequest = await ServiceRequest.findOne({
-      _id: requestId,
-      client: clientId
-    });
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      client: clientId,
+    }).populate('service','name');
 
-    if (!serviceRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service request not found'
-      });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Find the offer
-    const offer = serviceRequest.offers.id(offerId);
-    if (!offer) {
-      return res.status(404).json({
-        success: false,
-        message: 'Offer not found'
-      });
-    }
-
-    if (offer.status !== 'pending') {
+    if (booking.status !== "ACCEPTED") {
       return res.status(400).json({
-        success: false,
-        message: 'Offer is no longer available'
+        message: "Booking not accepted yet",
       });
     }
 
-    // Update offer status and assign tasker
-    offer.status = 'accepted';
-    serviceRequest.assignedTasker = offer.tasker;
-    serviceRequest.status = 'Booked';
-    serviceRequest.finalCost = offer.amount;
+    // 🔐 Generate 6-digit PIN
+    const completionPin = generateSixDigitPin();
 
-    // Decline all other pending offers
-    serviceRequest.offers.forEach(otherOffer => {
-      if (otherOffer._id.toString() !== offerId && otherOffer.status === 'pending') {
-        otherOffer.status = 'declined';
-      }
+    booking.verification.pinCode = completionPin;
+    //booking.verification.completionConfirmedAt = new Date();
+    //booking.status = "COMPLETED";
+
+    await booking.save();
+    const bookingTitle = booking.service.name 
+
+    await notificationService.notifyClientWithCompletionPin({
+      clientId:clientId,
+      pin:completionPin,
+      bookingTitle:bookingTitle
+    })
+
+   await notificationService.notifyTaskerPinRequired({
+      taskerId: booking.tasker,
+      bookingTitle: bookingTitle,
     });
-
-    await serviceRequest.save();
-
-    // Notify the accepted tasker
-    await notificationService.notifyTaskerOfferAccepted(
-      offer.tasker,
-      serviceRequest._id
-    );
-
-   
-    const declinedTaskers = serviceRequest.offers
-      .filter(o => o.status === 'declined' && o._id.toString() !== offerId)
-      .map(o => o.tasker);
-
-    await notificationService.notifyTaskersOfferDeclined(
-      declinedTaskers,
-      serviceRequest._id
-    );
 
     res.status(200).json({
-      success: true,
-      message: 'Offer accepted successfully',
-      data: {
-        request: serviceRequest,
-        acceptedOffer: offer
-      }
+      message: "Service completed successfully",
+      pin: completionPin, 
     });
-
-  } catch (error) {
-    console.error('Accept offer error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to accept offer'
-    });
+  } catch (err) {
+    console.error("Confirm completion error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-
-
- const cancelServiceRequest = async (req, res) => {
+const getClientBookingById = async (req, res) => {
   try {
-    const { requestId } = req.params;
-    const client = req.user.id;
-    const notificationService = req.app.get("notificationService");
+    const { bookingId } = req.params;
+    const clientId = req.user.id;
 
-    const serviceRequest = await ServiceRequest.findOne({ _id: requestId, client });
-    if (!serviceRequest) return res.status(404).json({ message: "Request not found" });
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      client: clientId,
+    })
+      .populate("tasker")
+      .populate("service");
 
-    if (['Booked', 'In-progress', 'Completed'].includes(serviceRequest.status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot cancel request in current status'
-      });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-
-   serviceRequest.status = "Canceled";
-    await serviceRequest.save();
-   
-    const taskersToNotify = serviceRequest.offers
-      .filter(offer => offer.status === 'pending')
-      .map(offer => offer.tasker);
-
-    await notificationService.notifyTaskersRequestCanceled(
-      taskersToNotify,
-      serviceRequest._id
-    );
-
-
-    res.status(200).json({ message: "Service request canceled successfully" });
+    res.status(200).json(booking);
   } catch (err) {
-    console.error("Error cancelling service request:", err);
+    console.error("Get client booking error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 
-const deleteServiceRequest = async (req, res) => {
+const cancelBooking = async (req, res) => {
   try {
-    const { requestId } = req.params;
-    const client = req.user.id;
+    const { bookingId } = req.params;
+    const clientId = req.user.id;
     const notificationService = req.app.get("notificationService");
 
-    const serviceRequest = await ServiceRequest.findOne({ _id: requestId, client });
-    if (!serviceRequest) return res.status(404).json({ message: "Request not found" });
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      client: clientId,
+    }).populate('service','name');;
 
-    if (['Booked', 'In-progress', 'Completed'].includes(serviceRequest.status)) {
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (
+      ["ARRIVED", "IN_PROGRESS", "COMPLETED"].includes(booking.status)
+    ) {
       return res.status(400).json({
-        success: false,
-        message: 'Cannot cancel request in current status'
+        message: "Booking can no longer be cancelled at this stage",
       });
     }
 
-     const fileUrls = serviceRequest.media.map((i)=>i.url)
-     deleteMultipleFromS3(fileUrls).catch(console.error())
+    booking.status = "CANCELLED";
+    await booking.save();
+    const bookingTitle = booking.service.name
 
-    const taskersToNotify = serviceRequest.offers
-      .filter(offer => offer.status === 'pending')
-      .map(offer => offer.tasker);
+    // Notify tasker
+    if (booking.tasker) {
+      await notificationService.notifyTaskerBookingCancelled({
+       taskerId: booking.tasker,
+       bookingTitle:bookingTitle
+    });
+    }
 
-   
-    await serviceRequest.deleteOne();
-   
-   
-    await notificationService.notifyTaskersRequestCanceled(
-      taskersToNotify,
-      serviceRequest._id
-    );
-
-
-    res.status(200).json({ message: "Service request canceled successfully" });
+    res.status(200).json({
+      message: "Booking cancelled successfully",
+    });
   } catch (err) {
-    console.error("Error cancelling service request:", err);
+    console.error("Cancel booking error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 
 
-const markServiceDone = async (req, res) => {
-  try {
-    const { requestId } = req.params;
-    const client = req.user.id;
-    const notificationService = req.app.get('notificationService');
-
-    const request =  await ServiceRequest.findOne({ _id: requestId,client}).populate('client', '_id name');
-    if (!request) return res.status(404).json({ message: "Service not found" });
-
-    request.markedDoneByEmployer = true;
-    request.employerDoneAt = new Date();
-    await notificationService.sendClientMarkedDoneNotification({
-    taskerId: request.assignedTasker,
-    taskTitle: request.type,
-    clientName: request.client.name,
-    });
-
-    // Auto-complete if both marked
-    if (request.markedDoneByTasker) {
-      request.status = "Completed";
-      await notificationService.sendTaskCompletedNotification({
-      clientId: request.client._id,
-      taskerId: request.assignedTasker,
-      taskTitle: request.type
-    });
-    }
-
-    await request.save();
-    return res.status(200).json({ message: "Marked done by employer", request });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
-
-module.exports = { createServiceRequest,
-  getClientRequests,
-  getSingleServiceRequest,
-  acceptOffer,
-  cancelServiceRequest,
- deleteServiceRequest,
- markServiceDone,
- updateServiceRequest,
-
-}
+module.exports = {createBooking,getClientBookings,confirmCompletion,getClientBookingById,cancelBooking,}

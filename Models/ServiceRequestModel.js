@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const ServiceRequestSchema = new mongoose.Schema(
+const BookingSchema = new mongoose.Schema(
   {
     client: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,99 +8,127 @@ const ServiceRequestSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    type: { type: String, required: true },
-    description: { type: String, required: true },
-    assignedTasker: {
+
+    tasker: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      default: null, 
-    },
-     
-     address:{
-        region:String,
-        city:String,
-        suburb:String,
-        latitude: Number,
-        longitude: Number,
-        coordinates: {
-        type: [Number], 
-        index: "2dsphere",
-    }
-  },
-
-    requirements:[{
-        type: String
-    }],
-
-    media: [
-   {
-    url: String,
-    type: { type: String, enum: ["image", "video"] }
-   }
- ],
-
- status: { 
-        type: String, 
-        enum: [
-            "Pending", "Quoted","Booked","In-progress","Review","Canceled","Completed","Closed"
-        ], 
-        default: "Pending" 
+      default: null,
+      index: true,
     },
 
-    preferredDate: { type: Date },
-
-    preferredTime:{
-        type:String,
+   
+    service: {
+      type: mongoose.Schema.Types.ObjectId, 
+      ref:'Service',
+      required: true,
+      index: true,
     },
 
-    urgency: {
-        type: String,
-        enum: ["flexible", "urgent", "scheduled"],
-        default: "flexible",
-      },
+    description: {
+      type: String,
+      required: true,
+    },
+
     
-     budget: {
+    address: {
+      region: String,
+      city: String,
+      suburb: String,
+      latitude: Number,
+      longitude: Number,
+      coordinates: {
+        type: [Number],
+        index: "2dsphere",
+      },
+    },
+
+    // --- Scheduling ---
+    preferredDate: Date,
+    preferredTime: String,
+
+    
+    media: [
+      {
+        url: String,
+        type: { type: String, enum: ["image", "video"] },
+        stage: { type: String, enum: ["before", "after"], default: "before" },
+      },
+    ],
+
+
+     price: { type: Number, default: null },
+
+    creditsUsed: {
       type: Number,
-      min: 0,
+      default: 0,
+    },
+
+    creditsDeducted: {
+      type: Boolean,
+      default: false,
+    },
+
+    unlockedAt: {
+      type: Date,
       default: null,
     },
+
+    // --- Disclosure control ---
+    disclosureLevel: {
+      type: Number,
+      enum: [1, 2, 3], // 1 = basic, 2 = unlocked, 3 = arrived
+      default: 1,
+    },
+
     
-    notifiedTaskers: [
-    { type: mongoose.Schema.Types.ObjectId, ref: "User" }
-  ],
+    verification: {
+      qrCode: String,
+      pinCode: String,
+      arrivalConfirmedAt: Date,
+      completionRequestedAt: Date,
+      completionConfirmedAt: Date,
+    },
 
+    
+    status: {
+      type: String,
+      enum: [
+        "PENDING",          // sent to tasker
+        "LOCKED",           // credits used, details unlocked
+        "ACCEPTED",
+        "DECLINED",
+        "ARRIVAL_PENDING",
+        "ARRIVED",
+        "IN_PROGRESS",
+        "COMPLETION_REQUESTED",
+        "COMPLETED",
+        "DISPUTED",
+        "NO_SHOW",
+        "CANCELLED",
+      ],
+      default: "PENDING",
+      index: true,
+    },
 
-   offers: [
-    {
-      tasker: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      amount: Number,
-      message: String,
-      status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" },
-      createdAt: { type: Date, default: Date.now },
-    }
-  ],
+    
+    arrivalDeadline: Date,
+    arrivalMissed: { type: Boolean, default: false },
 
+    statusHistory: [
+      {
+        status: String,
+        at: { type: Date, default: Date.now },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
 
-    finalCost: { type: Number, default: null },
-
-    markedDoneByEmployer: { type: Boolean, default: false },
-
-    employerDoneAt: { type: Date, default: null },
-
-    markedDoneByTasker: { type: Boolean, default: false },
-
-    taskerDoneAt: { type: Date, default: null },
-
-    funded:{type:Boolean,default:false},
-
+   
     feedback: {
       rating: { type: Number, min: 1, max: 5 },
       comment: String,
     },
- 
-},
+  },
   { timestamps: true }
 );
 
-const  ServiceRequest =  mongoose.model("ServiceRequest", ServiceRequestSchema);
-module.exports = {ServiceRequest}
+module.exports = mongoose.model("Booking", BookingSchema);

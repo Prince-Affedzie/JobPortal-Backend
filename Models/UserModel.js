@@ -200,6 +200,16 @@ paystackRecipientCode:{
   default:null
 },
 
+credits:{
+  type:Number,
+  default:12,
+},
+
+score:{
+  type:Number,
+  default:0
+},
+
 paymentMethods: [
   {
     type: {

@@ -3,7 +3,7 @@ const Message = require('../Models/MessageModel');
 const ConversationRoom = require('../Models/ConversationRoom');
 const onlineUsers = new Map();
 
-function socketHandler(io, socket) {
+function socketHandler(io, socket,notificationService) {
   
 
   socket.on('joinRoom', ({ roomId }) => {
@@ -11,45 +11,66 @@ function socketHandler(io, socket) {
   });
 
   socket.on('sendMessage', async (data) => {
-    try {
-     
-      const { senderId, roomId, text, mediaUrl, fileName,replyTo } = data;
-      const message =  new Message({
-        sender: senderId,
-        room: roomId,
-        text,
-        mediaUrl,
-        fileName,
-        replyTo
-      });
-       const savedMessage = await message.save()
+  try {
+    const { senderId, roomId, text, mediaUrl, fileName, replyTo } = data;
+    
 
+    const message = new Message({
+      sender: senderId,
+      room: roomId,
+      text,
+      mediaUrl,
+      fileName,
+      replyTo
+    });
 
-      const room = await ConversationRoom.findById(roomId).populate('participants','name profileImage').populate('job','title');
+    const savedMessage = await message.save();
 
-    // Update lastMessage and increment unreadCounts
-      const updatedCounts = new Map(room.unreadCounts || []);
-      for (let participant of room.participants) {
+    const room = await ConversationRoom.findById(roomId)
+      .populate('participants', 'name profileImage')
+      .populate('job', 'title');
+
+    // --- Update unread counts ---
+    const updatedCounts = new Map(room.unreadCounts || []);
+    for (const participant of room.participants) {
       const userId = participant._id.toString();
       if (userId !== senderId) {
-        const current = updatedCounts.get(userId) || 0;
-        updatedCounts.set(userId, current + 1);
+        updatedCounts.set(userId, (updatedCounts.get(userId) || 0) + 1);
       }
     }
 
-     room.lastMessage = message.text || fileName || 'Media sent';
-     room.lastMessageAt = new Date();
-     room.unreadCounts = updatedCounts;
+    room.lastMessage = text || fileName || '📎 Media sent';
+    room.lastMessageAt = new Date();
+    room.unreadCounts = updatedCounts;
+    await room.save();
 
-      await room.save();
-     
-      const populatedMessage = await Message.findById(savedMessage._id).populate('sender').populate({ path: 'replyTo', populate: { path: 'sender' } });
-      io.to(roomId).emit('receiveMessage', populatedMessage);
-      io.emit('updatedRoom',room)
-    } catch (error) {
-      console.error('Socket sendMessage error:', error);
+    // --- Emit message ---
+    const populatedMessage = await Message.findById(savedMessage._id)
+      .populate('sender', 'name profileImage')
+      .populate({ path: 'replyTo', populate: { path: 'sender' } });
+
+    io.to(roomId).emit('receiveMessage', populatedMessage);
+    io.emit('updatedRoom', room);
+
+    
+    const sender = room.participants.find(p => p._id.toString() === senderId);
+
+    for (const participant of room.participants) {
+      if (participant._id.toString() === senderId) continue;
+
+      await notificationService.notifyNewChatMessage({
+        receiverId: participant._id,
+        senderName: sender?.name || 'New message',
+        preview: text || (fileName ? 'Sent a file' : 'Sent a message'),
+        roomTitle: room.job?.title
+      });
     }
-  });
+
+  } catch (error) {
+    console.error('Socket sendMessage error:', error);
+  }
+});
+
 
  socket.on('markAsSeen', async ({ messageId, userId }) => {
     try {

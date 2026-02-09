@@ -744,6 +744,127 @@ async adminBroadcastNotification({ title, message }) {
 }
 
 
+
+async notifyTaskerNewBooking(taskerId, bookingId, clientName = 'A client') {
+  try {
+    await this.sendNotification({
+      userId: taskerId,
+      title: "📌 New Booking Received",
+      message: `${clientName} has booked your service. Review the booking details and confirm availability to proceed.`
+    });
+  } catch (error) {
+    console.error('Notify tasker new booking error:', error);
+  }
+}
+
+
+async notifyClientWithCompletionPin({ clientId, pin, bookingTitle }) {
+  try {
+    await this.sendNotification({
+      userId: clientId,
+      title: "🔐 Job Completion PIN",
+      message: `Your completion PIN for "${bookingTitle}" is ${pin}. Please share this PIN with the tasker ONLY after the job is completed.`
+    });
+  } catch (error) {
+    console.error('Notify client with completion PIN error:', error);
+  }
+}
+
+
+async notifyTaskerPinRequired({ taskerId, bookingTitle }) {
+  try {
+    await this.sendNotification({
+      userId: taskerId,
+      title: "🔑 Completion PIN Required",
+      message: `To complete "${bookingTitle}", request the 6-digit completion PIN from the client after finishing the job.`
+    });
+  } catch (error) {
+    console.error('Notify tasker PIN required error:', error);
+  }
+}
+
+
+async notifyTaskerBookingCancelled({ taskerId, bookingTitle, reason = null }) {
+  try {
+    const message = reason
+      ? `The client has cancelled the booking "${bookingTitle}". Reason: ${reason}. You’re now free to accept other jobs.`
+      : `The client has cancelled the booking "${bookingTitle}". You’re now free to accept other jobs.`;
+
+    await this.sendNotification({
+      userId: taskerId,
+      title: "❌ Booking Cancelled",
+      message
+    });
+  } catch (error) {
+    console.error('Notify tasker booking cancelled error:', error);
+  }
+}
+
+
+async notifyClientBookingAccepted({ clientId, bookingTitle, taskerName }) {
+  try {
+    await this.sendNotification({
+      userId: clientId,
+      title: "✅ Booking Accepted",
+      message: `${taskerName} has accepted your booking for "${bookingTitle}". They’re preparing to start the job. You’ll be notified when they arrive.`
+    });
+  } catch (error) {
+    console.error('Notify client booking accepted error:', error);
+  }
+}
+
+async notifyClientBookingCompleted({ clientId, serviceName, taskerName }) {
+  try {
+    await this.sendNotification({
+      userId: clientId,
+      title: "🎉 Service Completed",
+      message: `${taskerName} has successfully completed your "${serviceName}" service. Thank you for using Workaflow! You may now leave a review.`
+    });
+  } catch (error) {
+    console.error('Notify client booking completed error:', error);
+  }
+}
+
+async notifyTaskerBookingCompleted({ taskerId, serviceName }) {
+  try {
+    await this.sendNotification({
+      userId: taskerId,
+      title: "✅ Job Successfully Completed",
+      message: `Your "${serviceName}" job has been successfully completed and confirmed. Great work!`
+    });
+  } catch (error) {
+    console.error('Notify tasker booking completed error:', error);
+  }
+}
+
+
+async notifyClientBookingDeclined({ clientId, serviceName, taskerName }) {
+  try {
+    await this.sendNotification({
+      userId: clientId,
+      title: "❌ Booking Declined",
+      message: `${taskerName} has declined your "${serviceName}" booking. You can quickly choose another available tasker to continue.`
+    });
+  } catch (error) {
+    console.error('Notify client booking declined error:', error);
+  }
+}
+
+
+async notifyNewChatMessage({ receiverId, senderName, preview, roomTitle }) {
+  try {
+    await this.sendNotification({
+      userId: receiverId,
+      title: "💬 New Message",
+      message: `${senderName}: ${preview}${roomTitle ? ` · ${roomTitle}` : ''}`
+    });
+  } catch (error) {
+    console.error('Notify new chat message error:', error);
+  }
+}
+
+
+
 }
 
 module.exports = NotificationService;
