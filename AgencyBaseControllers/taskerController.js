@@ -65,6 +65,7 @@ const acceptBooking = async (req, res) => {
     const notificationService = req.app.get("notificationService");
     const { bookingId } = req.params;
     const taskerId = req.user.id;
+    const user = UserModel.finById(taskerId)
 
     const booking = await Booking.findOne({
       _id: bookingId,
@@ -76,11 +77,14 @@ const acceptBooking = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
+    const creditsRequired = 3;
 
     booking.disclosureLevel = 3;
     booking.status = "ACCEPTED";
-
+    user.credits = user.credits-creditsRequired
+     
     await booking.save();
+    await user.save();
 
     // 🔔 Notify client
     await notificationService.notifyClientBookingAccepted({

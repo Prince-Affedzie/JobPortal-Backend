@@ -1,7 +1,28 @@
 const { Payment } = require('../Models/PaymentModel');
 const { MiniTask } = require("../Models/MiniTaskModel");
+const {UserModel} = require('../Models/UserModel')
 const {ServiceRequest} = require( "../Models/ServiceRequestModel.js");
 const axios = require('axios');
+
+
+const CREDIT_PACKAGES = [
+  { id: 'basic', name: 'Basic', credits: 12, price: 30 },      // 30 GHS => 12 credits
+  { id: 'standard', name: 'Standard', credits: 24, price: 50 }, // 50 GHS => 24 credits
+  { id: 'premium', name: 'Premium', credits: 36, price: 70 },   // 70 GHS => 36 credits
+  { id: 'business', name: 'Business', credits: 50, price: 120 }, // 120 GHS => 50 credits
+];
+
+
+function getCreditsFromAmount(amount) {
+  // Find the package that matches the exact amount
+  const matchedPackage = CREDIT_PACKAGES.find(pkg => pkg.price === amount);
+
+  if (!matchedPackage) {
+    return null; // no matching package
+  }
+
+  return matchedPackage.credits;
+}
 
 
 const initializePayment = async (req, res) => {
@@ -253,6 +274,79 @@ const ensureRecipientForBeneficiary = async (beneficiary, paymentMethod) => {
   }
 };
 
+const getUserCredits = async(req,res)=>{
+  try{
+    console.log("I'm being called")
+    const {id}= req.user
+    const user =await UserModel.findById(id)
+    res.status(200).json(user.credits)
+
+  }catch (error) {
+    console.error('PError:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Failed to fetch credits");
+  }
+}
+
+const initializeCreditPurchase = async (req, res) => {
+  const { v4: uuidv4 } = await import('uuid');
+  try {
+    const transactionRef = uuidv4();
+    res.status(200).json({ reference: transactionRef });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
+const verifyCreditPurchase = async (req, res) => {
+  try {
+    const { id } = req.user; // authenticated user
+    const { reference } = req.params;
+    console.log(req.pqarams)
+
+    // Verify payment with Paystack
+    const verifyRes = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    const data = verifyRes.data.data;
+    const verifiedAmount = data.amount / 100; // Kobo -> GHS
+
+    if (data.status === 'success') {
+      // Step 4: Get credits from verified amount
+      const creditsToAdd = getCreditsFromAmount(verifiedAmount);
+
+      if (!creditsToAdd) {
+        return res.status(400).json({ message: 'Invalid amount, no matching package found' });
+      }
+
+      // Update user's credits
+      const user = await UserModel.findByIdAndUpdate(
+        id,
+        { $inc: { credits: creditsToAdd } },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message: `Payment verified! ${creditsToAdd} credits added to your account.`,
+        credits: user.credits,
+        paymentData: data,
+      });
+    } else {
+      return res.status(400).json({ message: 'Payment not successful', paymentData: data });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error', error: err.message });
+  }
+};
+
 
 module.exports = {
   initializePayment,
@@ -260,4 +354,7 @@ module.exports = {
   releasePayment,
   refundPayment,
   ensureRecipientForBeneficiary,
+  initializeCreditPurchase,
+  verifyCreditPurchase,
+  getUserCredits,
 };
