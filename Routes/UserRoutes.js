@@ -1,6 +1,6 @@
 const express = require("express")
 const userRouter = express.Router()
-const {signUpByGoogle,signUp,google_login,login,logout,onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
+const {signUpByGoogle,signUp,google_login,login,appleSignUpOrLogin,logout,Onboarding,editProfile,viewProfile,chat,getNotifications,createNotification,deleteBulkNotification,deleteNotification, 
   switchAccouunt,   markNotificationAsRead,handleImageUpdate,requestPasswordReset,resetPassword,updatePushToken,deleteAccount} = require('../Controllers/UserContoller')
 const {generatePortfolioUploadURL,generateProfileImageUploadURL,generateIdCardUploadURL} = require('../Services/portofolioFileUpload')
 const {upload} = require('../Config/Mutler')
@@ -10,6 +10,7 @@ const {verify_token} = require("../MiddleWare/VerifyToken")
 userRouter.post("/user/signup",validateInput,signUp)
 userRouter.post("/user/google-signup",signUpByGoogle)
 userRouter.post("/user/google-login",google_login)
+userRouter.post("/user/apple-signup",appleSignUpOrLogin)
 userRouter.post("/user/login",login)
 userRouter.post("/user/request-password-reset",requestPasswordReset)
 userRouter.post("/user/reset-password",verify_token,resetPassword)
@@ -22,7 +23,7 @@ userRouter.put("/user/edit_profile",verify_token,upload.fields([
 userRouter.put("/user/onboarding",verify_token,upload.fields([
   { name: 'profileImage', maxCount: 1 },
   { name: 'idCardImage', maxCount: 1 }
-]),onboarding)
+]),Onboarding)
 
 userRouter.post("/user/upload-profile-image",verify_token,generateProfileImageUploadURL)
 userRouter.post("/user/upload-id-card",verify_token,generateIdCardUploadURL)

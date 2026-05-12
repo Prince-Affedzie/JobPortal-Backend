@@ -3,14 +3,14 @@ const taskerRouter = express.Router();
 const { upload } = require('../Config/Mutler.js');
 const { verify_token } = require('../MiddleWare/VerifyToken.js');
 const {
-    applyToJob,
+    updateTaskerProfile,
+    Taskerboarding,
+    getOwnTaskerProfile,
     getNearbyTasks,
     applyOrBidMiniTask,
     negotiateOnMiniTask,
     acceptMiniTaskAssignment,
     rejectMiniTaskAssignment,
-    viewAllApplications,
-    viewApplication,
     getRecentJobApplications,
     yourAppliedMiniTasks,
     removeAppliedMiniTasksFromDashboard,
@@ -23,13 +23,24 @@ const {
     deletePaymentMethod,
     addWorkSamplesToProfile,
     removeWorkSample,
-     getBidById,
-     updateBid ,
+    getBidById,
+    updateBid ,
     withdrawBid,
 } = require("../Controllers/TaskerController.js");
 
+// Profile Management
+taskerRouter.post('/tasker/onboard',verify_token,upload.fields([
+  { name: 'brandBanner', maxCount: 1 },
+  { name: 'idCardImage', maxCount: 1 }
+]),Taskerboarding)
+taskerRouter.post('/tasker/update_profile',verify_token,upload.fields([
+  { name: 'brandBanner', maxCount: 1 },
+  { name: 'idCardImage', maxCount: 1 }
+]),updateTaskerProfile)
+taskerRouter.get('/tasker/my_profile',verify_token,getOwnTaskerProfile)
+
 // Job application routes
-taskerRouter.post('/h1/v2/apply/:Id', verify_token, upload.single("resume"), applyToJob);
+//taskerRouter.post('/h1/v2/apply/:Id', verify_token, upload.single("resume"), applyToJob);
 taskerRouter.post('/h1/v2/mini_task/apply/:Id', verify_token, applyOrBidMiniTask);
 taskerRouter.post('/h1/v2/mini_task/negotiate/:Id',verify_token,negotiateOnMiniTask)
 taskerRouter.get('/h1/v2/get_nearby_tasks',verify_token,getNearbyTasks)
@@ -40,9 +51,7 @@ taskerRouter.put("/h1/v2/reject_task_assignment/:Id", verify_token, rejectMiniTa
 taskerRouter.put("/h1/v2/mark_task_as_done/tasker/:Id", verify_token, markTaskDoneByTasker);
 taskerRouter.put("/h1/v2/mark_task__undone/tasker/:Id", verify_token, unmarkTaskDoneByTasker);
 
-// Application viewing routes
-taskerRouter.get("/h1/v2/view_applications", verify_token, viewAllApplications);
-taskerRouter.get("/h1/v2/view_application/:Id", verify_token, viewApplication);
+
 taskerRouter.get("/h1/v2/get/recent_applications", verify_token, getRecentJobApplications);
 
 // Mini task management

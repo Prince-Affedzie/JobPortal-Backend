@@ -17,6 +17,7 @@ const {
     viewAllPayments,
     searchTaskers,
     getTaskers,
+    getTasker,
 } = require("../Controllers/ClientController.js");
 const {generateTaskMediaUploadURL} = require('../Services/portofolioFileUpload')
 
@@ -46,4 +47,5 @@ clientRouter.get('/h1/v2/get_all_payments',verify_token,viewAllPayments)
 // Taskers Searching
 clientRouter.post('/h1/v2/taskers-search',verify_token, searchTaskers)
 clientRouter.get('/h1/v2/taskers-get',verify_token,getTaskers)
+clientRouter.get("/h1/v2/tasker/:taskerId",verify_token,getTasker)
 module.exports = { clientRouter };

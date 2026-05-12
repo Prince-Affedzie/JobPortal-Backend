@@ -1,4 +1,5 @@
 const Booking = require("../Models/ServiceRequestModel");
+const TaskerProfile = require("../Models/TaskerModel");
 
 const generateSixDigitPin = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -14,33 +15,44 @@ const createBooking = async (req, res) => {
       description,
       address,
       preferredDate,
-      preferredTime,
+      preferredTime,   // now destructured
       media,
     } = req.body;
-    console.log(req.body)
+
+    // Fetch tasker & service details
+    const taskerDoc = await TaskerProfile.findById(tasker);
+   
+    if (!taskerDoc) return res.status(404).json({ message: 'Tasker not found' });
+
+    const serviceDoc = taskerDoc.servicesOffered.id(service);
+    if (!serviceDoc) return res.status(400).json({ message: 'Invalid service' });
+
+    const scheduledAt = new Date(`${preferredDate}T${preferredTime}:00`);
 
     const booking = new Booking({
       client: clientId,
       tasker,
-      service,
+      service: {
+        serviceId: serviceDoc._id,
+        name: serviceDoc.name,
+        price: serviceDoc.price,
+        priceType:serviceDoc.priceType
+      },
       description,
       address,
       preferredDate,
-      preferredTime,
+      preferredTime: scheduledAt, // Date now
+      scheduledAt,
       media: media || [],
       status: "PENDING",
     });
 
     await booking.save();
 
-    // notify tasker
     const notificationService = req.app.get("notificationService");
-    await notificationService.notifyTaskerNewBooking(tasker, booking._id);
+    await notificationService.notifyTaskerNewBooking(taskerDoc.userId, booking._id);
 
-    res.status(201).json({
-      message: "Booking sent successfully",
-      bookingId: booking._id,
-    });
+    res.status(201).json({ message: "Booking sent successfully", bookingId: booking._id });
   } catch (err) {
     console.error("Create booking error:", err);
     res.status(500).json({ message: "Server error" });
@@ -53,7 +65,7 @@ const getClientBookings = async (req, res) => {
     const client = req.user.id;
 
     const bookings = await Booking.find({ client })
-      .populate("tasker", "name profileImage")
+      .populate("tasker", "businessName  brandBanner")
       .populate("service")
       .sort({ createdAt: -1 });
     res.status(200).json(bookings);
@@ -73,7 +85,9 @@ const confirmCompletion = async (req, res) => {
     const booking = await Booking.findOne({
       _id: bookingId,
       client: clientId,
-    }).populate('service','name');
+    })
+    .populate('service','name')
+    .populate('tasker','userId');
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -102,7 +116,7 @@ const confirmCompletion = async (req, res) => {
     })
 
    await notificationService.notifyTaskerPinRequired({
-      taskerId: booking.tasker,
+      taskerId: booking.tasker.userId,
       bookingTitle: bookingTitle,
     });
 
@@ -125,8 +139,11 @@ const getClientBookingById = async (req, res) => {
       _id: bookingId,
       client: clientId,
     })
-      .populate("tasker")
-      .populate("service");
+    .populate({
+    path: 'tasker',
+    populate: { path: 'userId', select: ' _id name profileImage' }
+     })
+    .populate("service");
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -149,7 +166,9 @@ const cancelBooking = async (req, res) => {
     const booking = await Booking.findOne({
       _id: bookingId,
       client: clientId,
-    }).populate('service','name');;
+     })
+    .populate('service','name')
+    .populate('tasker','userId');
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -170,7 +189,7 @@ const cancelBooking = async (req, res) => {
     // Notify tasker
     if (booking.tasker) {
       await notificationService.notifyTaskerBookingCancelled({
-       taskerId: booking.tasker,
+       taskerId: booking.tasker.userId,
        bookingTitle:bookingTitle
     });
     }

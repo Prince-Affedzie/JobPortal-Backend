@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const bidSchema = new Schema({
-    bidder: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    bidder: { type: mongoose.Schema.Types.ObjectId, ref: "TaskerProfile", required: true },
     amount: { type: Number, required: true },
     message: { type: String }, 
     timeline: { type: String }, 
@@ -92,11 +92,11 @@ const miniTaskSchema = new Schema({
     }},
 
     applicants: [
-        { type: mongoose.Schema.Types.ObjectId, ref: "User", default:[] }
+        { type: mongoose.Schema.Types.ObjectId, ref: "TaskerProfile", default:[] }
     ],
 
      curatedPool: [{
-      tasker: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      tasker: { type: mongoose.Schema.Types.ObjectId, ref: "TaskerProfile" },
       addedAt: { type: Date, default: Date.now },
       status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" }
     }],
@@ -104,7 +104,7 @@ const miniTaskSchema = new Schema({
     bids: [bidSchema], 
     negotiations: [NegotiationSchema],
 
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "TaskerProfile", default: null },
     assignmentAccepted: { type: Boolean, default: false },
 
     status: { 

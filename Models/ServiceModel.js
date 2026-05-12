@@ -17,7 +17,7 @@ const ServiceSchema = new mongoose.Schema({
   },
   providers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "TaskerProfile"
   }],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });

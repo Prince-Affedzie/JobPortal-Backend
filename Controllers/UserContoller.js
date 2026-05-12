@@ -33,8 +33,6 @@ const signUpByGoogle = async (req, res) => {
         idToken: token,
         audience: [
           process.env.GOOGLE_WEB_CLIENT_ID,
-          process.env.GOOGLE_ANDROID_CLIENT_ID,
-          process.env.GOOGLE_IOS_CLIENT_ID
         ],
     });
     
@@ -110,6 +108,44 @@ const signUp = async(req,res)=>{
 
 }
 
+const appleSignUpOrLogin = async (req, res) => {
+  const {appleUserId,email, token,firstName, lastName, role} = req.body;
+  try {
+
+    if (!appleUserId) {
+      return res.status(400).json({ success: false, message: 'Apple ID is required' });
+    }
+
+    let user = await UserModel.findOne({ appleId: appleUserId });
+
+    if (user) {
+       const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"});
+       res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
+       return res.status(200).json({message:"Login Successful",role:user.role,user:user,token:apptoken});
+    }
+
+    const name = firstName +" "+lastName;
+    // Create the new user
+    user = new UserModel({
+      name:name || '',
+      email: email, 
+      appleId: appleUserId,
+      role:role,
+      
+    });
+
+    await user.save();
+    const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"30d"})
+    res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
+
+    return res.status(200).json({success:true,message:"Registration Successful",role:user.role,user:user,token:apptoken});
+
+  } catch (error) {
+    console.error('Apple Auth Controller Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during Apple authentication' });
+  }
+};
+
 
 const google_login = async(req,res)=>{
    const {token} = req.body
@@ -121,8 +157,6 @@ const google_login = async(req,res)=>{
         idToken: token,
         audience: [
           process.env.GOOGLE_WEB_CLIENT_ID,
-          process.env.GOOGLE_ANDROID_CLIENT_ID,
-          process.env.GOOGLE_IOS_CLIENT_ID
         ],
       });
 
@@ -131,11 +165,6 @@ const google_login = async(req,res)=>{
 
     const lowerCaseEmail = email.toLowerCase()
     const findUser = await UserModel.findOne({email:lowerCaseEmail})
-               .populate({
-               path: 'ratingsReceived.ratedBy',
-               select: 'name profileImage role email phone'
-              })
-              .exec();
         if(!findUser){
             return res.status(404).json({message: "Account Not Found. Please sign up first"})
         }
@@ -151,6 +180,9 @@ const google_login = async(req,res)=>{
 
 }
 
+
+
+
 const login = async(req,res)=>{
     const {email,password} = req.body
    console.log("Logging In")
@@ -161,11 +193,6 @@ const login = async(req,res)=>{
         }
         const lowerCaseEmail = email.toLowerCase()
         const findUser = await UserModel.findOne({email:lowerCaseEmail})
-               .populate({
-               path: 'ratingsReceived.ratedBy',
-               select: 'name profileImage role email phone'
-              })
-              .exec();
         if(!findUser){
             return res.status(404).json({message: "Account Not Found. Please sign up first"})
         }
@@ -251,11 +278,7 @@ const logout =async(req,res)=>{
 const editProfile = async(req,res)=>{
     try{
          
-        const {name,email,phone,skills,education,workExperience,
-          workPortfolio,Bio,location,profileImage,
-          primaryService, 
-          secondaryServices,
-          } = req.body
+        const {name,email,phone,profileImage,} = req.body
         
        
         const {id} = req.user
@@ -291,121 +314,22 @@ const editProfile = async(req,res)=>{
         user.name =name || user.name
         user.email = email || user.email
         user.phone = phone || user.phone
-        user.skills = skills || user.skills
-        user.education = education || user.education
-        user.workExperience = workExperience || user.workExperience
-        user.Bio = Bio || user.Bio
-        user.workPortfolio = workPortfolio ||  user.workPortfolio
-        user.profileImage =profileImage || user.profileImage
-
-      if (skills) {
-   
-       const newServiceTags = []; 
-
-    for (let skill of skills) {
-        const match = await getServiceTagFromSkill(skill);
-       
-        if (match) newServiceTags.push(match);
-    }
-    
-    
-     const existingTags = Array.isArray(user.serviceTags) ? user.serviceTags : [];
-    
-      user.serviceTags = [
-        ...existingTags, 
-        ...newServiceTags 
-     ];
-     }
-
-        // FIX 1: Extract service name properly
-        if (primaryService) {
-          // Handle both string and object formats
-          let serviceName;
-          
-          if (typeof primaryService === 'string') {
-            serviceName = primaryService;
-          } else if (primaryService && primaryService.serviceName) {
-            serviceName = primaryService.serviceName;
-          } else if (primaryService && primaryService.name) {
-            serviceName = primaryService.name;
-          }
-          
-          if (serviceName) {
-            const findService = await Service.findOne({ name: serviceName });
-            if (findService) {
-              user.primaryService = {
-                serviceId: findService._id,
-                serviceName: findService.name
-              };
-                
-              if (!findService.providers.includes(user._id)) {
-                findService.providers.push(user._id);
-                await findService.save();
-              }
-            }
-          }
-        }
-
-        // FIX 2: Handle secondaryServices properly
-        if (secondaryServices && Array.isArray(secondaryServices)) {
-            const secondaryObjects = [];
-            
-            for (const serviceData of secondaryServices) {
-                let serviceName;
-                
-                // Handle different formats
-                if (typeof serviceData === 'string') {
-                    serviceName = serviceData;
-                } else if (serviceData && serviceData.serviceName) {
-                    serviceName = serviceData.serviceName;
-                } else if (serviceData && serviceData.name) {
-                    serviceName = serviceData.name;
-                }
-                
-                if (serviceName) {
-                    const foundService = await Service.findOne({ name: serviceName });
-                    
-                    if (foundService) {
-                        secondaryObjects.push({
-                            serviceId: foundService._id,
-                            serviceName: foundService.name
-                        });
-
-                        if (!foundService.providers.includes(user._id)) {
-                            foundService.providers.push(user._id);
-                            await foundService.save();
-                        }
-                    }
-                }
-            }
-            user.secondaryServices = secondaryObjects;
-        }
-        
+        user.profileImage =profileImage || user.profileImage   
     await user.save()
     res.status(200).json({message:"Profile Updated Successfully"})
-
-
-       
+     
     }catch(err){
         console.log(err)
         res.status(500).json({message: "Internal Server Error"})
     }
 }
 
-const onboarding = async (req, res) => {
+const Onboarding = async (req, res) => {
     try {
         const { 
             phone, 
-            primaryService, 
-            secondaryServices, // Array of strings e.g., ["Cleaning", "Painting"]
-            skills, 
-            education, 
-            workExperience, 
-            workPortfolio, 
-            Bio, 
-            location, 
             profileImage, 
-            idCard 
+           
         } = req.body;
         
         
@@ -416,90 +340,18 @@ const onboarding = async (req, res) => {
             return res.status(404).json({ message: "Account Doesn't Exist" });
         }
 
-        // 1. Phone validation
-       /* if (phone && phone !== user.phone) {
+       
+        if (phone && phone !== user.phone) {
             const phoneExist = await UserModel.findOne({ phone: phone });
             if (phoneExist) {
                 return res.status(403).json({ message: "Phone Number Already Exists" });
             }
             user.phone = phone;
-        }*/
+        }
 
-        // 2. Map standard fields
-        user.phone = phone || user.phone
-        user.skills = skills || user.skills;
-        user.education = education || user.education;
-        user.workExperience = workExperience || user.workExperience;
-        user.Bio = Bio || user.Bio;
-        user.workPortfolio = workPortfolio || user.workPortfolio;
         user.profileImage = profileImage || user.profileImage;
-        user.idCard = idCard || user.idCard;
-
-        // 3. Geocoding logic
-        const addressString = `${location?.street || ""}, ${location?.town || ""}, ${location?.city || ""}, ${location?.region || ""}`;
-        const geo = await geocodeAddress(addressString);
-
-        if (geo) {
-            user.location = {
-                ...location,
-                latitude: geo.latitude,
-                longitude: geo.longitude,
-                coordinates: [geo.longitude, geo.latitude],
-            };
-        } else {
-            user.location = location || user.location;
-        }
-
-        // 4. Handle Service Tags from skills
-        const serviceTags = [];
-        if (skills) {
-            for (let skill of skills) {
-                const match = await getServiceTagFromSkill(skill);
-                if (match) serviceTags.push(match);
-            }
-        }
-        user.serviceTags = serviceTags;
-
-        // 5. PRIMARY SERVICE MAPPING
-        if (primaryService) {
-            const findService = await Service.findOne({ name: primaryService });
-            if (findService) {
-                user.primaryService = {
-                    serviceId: findService._id,
-                    serviceName: findService.name
-                };
-                
-                if (!findService.providers.includes(user._id)) {
-                    findService.providers.push(user._id);
-                    await findService.save();
-                }
-            }
-        }
-
-        if (secondaryServices && Array.isArray(secondaryServices)) {
-            const secondaryObjects = [];
-            
-            for (const serviceName of secondaryServices) {
-                const foundService = await Service.findOne({ name: serviceName });
-                
-                if (foundService) {
-                    secondaryObjects.push({
-                        serviceId: foundService._id,
-                        serviceName: foundService.name
-                    });
-
-                    
-                    if (!foundService.providers.includes(user._id)) {
-                        foundService.providers.push(user._id);
-                        await foundService.save();
-                    }
-                }
-            }
-            user.secondaryServices = secondaryObjects;
-        }
-
         await user.save();
-        res.status(200).json({ message: "Profile Updated Successfully", user });
+        res.status(200).json({ message: "Profile Updated Successfully", user:user });
 
     } catch (err) {
         console.error(err);
@@ -531,13 +383,6 @@ const viewProfile = async(req,res)=>{
     try{
         const {id} =req.user
         const user = await UserModel.findById(id)
-          .populate({
-             path: 'ratingsReceived.ratedBy',
-             select: 'name profileImage role email phone'
-           })
-           .exec();
-          
-
         if(!user){
             return res.status(404).json({message:"Account not Found"})
         }
@@ -713,7 +558,7 @@ const chat = async (req, res) => {
        if(!findUser){
         res.status(404).json({message:'User Account not Found'})
        }
-       findUser.role === 'job_seeker'?findUser.role = 'client':findUser.role = 'job_seeker'
+       findUser.role === 'job_seeker'?findUser.role = 'client':findUser.role = 'tasker'
        await findUser.save()
        res.status(200).json({message:'Account Switch Successful',user:findUser})
 
@@ -750,6 +595,6 @@ const chat = async (req, res) => {
 //https://adeesh.hashnode.dev/building-a-real-time-notification-system-with-mern-stack-and-socketio-a-step-by-step-guide
 
 
-module.exports = {signUpByGoogle,signUp,google_login,login,logout,editProfile,viewProfile,onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
+module.exports = {signUpByGoogle,signUp,google_login,login,appleSignUpOrLogin,logout,editProfile,viewProfile,Onboarding,requestPasswordReset, resetPassword,deleteBulkNotification,
     chat,getNotifications,createNotification, markNotificationAsRead, handleImageUpdate, deleteNotification, updatePushToken, 
     switchAccouunt,deleteAccount }

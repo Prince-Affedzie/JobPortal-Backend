@@ -8,6 +8,7 @@ const {Payment} = require('../Models/PaymentModel')
 const { processEvent } = require('../Services/adminEventService');
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
 const {geocodeAddress} = require('../Utils/geoService')
+const TaskerProfile = require("../Models/TaskerModel");
 const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = require('../Services/aws_S3_file_Handling');
 
 
@@ -478,8 +479,8 @@ const unmarkTaskDoneByClient = async (req, res) => {
 const viewAllPayments = async(req,res)=>{
     try{
         const {id} = req.user
-        const payments = await Payment.find({initiator:id}).populate('taskId').sort({createdAt:-1})
-        res.status(200).json(payments)
+       // const payments = await Payment.find({initiator:id}).populate('taskId').sort({createdAt:-1})
+        res.status(200).json([])
 
     }catch(err){
         console.log(err)
@@ -543,8 +544,7 @@ const getTaskers = async (req, res) => {
         const subcategoryNames = category.subcategories.map(s => s.name); 
         // Example: ["Home Cleaning", "Office Cleaning"]
 
-        const topTaskers = await UserModel.find({
-          role: "job_seeker",
+        const topTaskers = await TaskerProfile.find({
           isVerified: true,
           isActive: true,
           "serviceTags.subcategory": { $in: subcategoryNames }
@@ -567,6 +567,35 @@ const getTaskers = async (req, res) => {
   }
 };
 
+const getTasker = async (req, res) => {
+    try {
+        const { taskerId } = req.params;
+        console.log(taskerId)
+
+        // Fetch profile and populate the basic user data (name, email)
+        const profile = await TaskerProfile.findById(taskerId)
+            .populate({
+                path: 'userId',
+                select: 'name email profileImage' // Only fetch necessary user fields
+            })
+            .populate('servicesOffered.serviceId'); // Optional: populate service category details
+
+        if (!profile) {
+            return res.status(404).json({ message: "Tasker profile not found" });
+        }
+
+        // Return the profile with the user details merged or nested
+        res.status(200).json({
+            success: true,
+            data: profile
+        });
+
+    } catch (err) {
+        console.error("Error fetching tasker profile:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 
 
 module.exports = {
@@ -584,4 +613,5 @@ module.exports = {
     viewAllPayments,
     searchTaskers,
     getTaskers,
+    getTasker,
 };

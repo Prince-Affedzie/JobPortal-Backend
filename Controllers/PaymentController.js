@@ -1,6 +1,7 @@
 const { Payment } = require('../Models/PaymentModel');
 const { MiniTask } = require("../Models/MiniTaskModel");
 const {UserModel} = require('../Models/UserModel')
+const TaskerProfile = require("../Models/TaskerModel");
 const {ServiceRequest} = require( "../Models/ServiceRequestModel.js");
 const axios = require('axios');
 
@@ -327,11 +328,11 @@ const verifyCreditPurchase = async (req, res) => {
       }
 
       // Update user's credits
-      const user = await UserModel.findByIdAndUpdate(
-        id,
-        { $inc: { credits: creditsToAdd } },
-        { new: true }
-      );
+      const tasker = await TaskerProfile.findOneAndUpdate(
+       { userId: id },                   
+       { $inc: { credits: creditsToAdd } }, 
+       { new: true }                    
+     );
 
       return res.status(200).json({
         message: `Payment verified! ${creditsToAdd} credits added to your account.`,

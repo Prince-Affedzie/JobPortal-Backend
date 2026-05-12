@@ -1,10 +1,12 @@
 const Booking = require("../Models/ServiceRequestModel");
 const { UserModel } = require('../Models/UserModel');
+const TaskerProfile = require("../Models/TaskerModel");
 
 
  const getTaskerBookings = async (req, res) => {
   try {
-    const tasker = req.user.id;
+    const user = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:user})
 
     const bookings = await Booking.find({ tasker })
       .select(
@@ -24,10 +26,11 @@ const unlockBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const taskerId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:taskerId})
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     });
 
     if (!booking) {
@@ -39,7 +42,8 @@ const unlockBooking = async (req, res) => {
     }
 
     // TODO: check tasker credit balance here
-    const creditsRequired = 1;
+    const creditsRequired = 3;
+    tasker.credits = tasker.credits-creditsRequired
 
     booking.creditsUsed = creditsRequired;
     booking.creditsDeducted = true;
@@ -48,6 +52,7 @@ const unlockBooking = async (req, res) => {
     booking.status = "LOCKED";
 
     await booking.save();
+    await tasker.save()
 
     res.status(200).json({
       message: "Booking unlocked successfully",
@@ -64,14 +69,14 @@ const acceptBooking = async (req, res) => {
   try {
     const notificationService = req.app.get("notificationService");
     const { bookingId } = req.params;
-    const taskerId = req.user.id;
-    const user = UserModel.finById(taskerId)
+    const userId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:userId})
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     }).populate('client', 'name')
-      .populate('tasker', 'name')
+      .populate('tasker', 'businessName')
       .populate('service', 'name');
 
     if (!booking) {
@@ -81,16 +86,16 @@ const acceptBooking = async (req, res) => {
 
     booking.disclosureLevel = 3;
     booking.status = "ACCEPTED";
-    user.credits = user.credits-creditsRequired
+    
      
     await booking.save();
-    await user.save();
+    //await user.save();
 
     // 🔔 Notify client
     await notificationService.notifyClientBookingAccepted({
       clientId: booking.client._id,
       bookingTitle: booking.service?.name || 'Service booking',
-      taskerName: booking.tasker?.name || 'Your tasker'
+      taskerName: booking.tasker?.businessName || 'Your tasker'
     });
 
     res.status(200).json({
@@ -109,14 +114,16 @@ const confirmCompletion = async (req, res) => {
     const notificationService = req.app.get("notificationService");
     const { bookingId } = req.params;
     const { pinCode } = req.body;
-    const taskerId = req.user.id;
+    const userId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:userId})
+    
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     })
       .populate('client', 'name')
-      .populate('tasker', 'name')
+      .populate('tasker', 'businessName')
       .populate('service', 'name');
 
     if (!booking) {
@@ -124,6 +131,7 @@ const confirmCompletion = async (req, res) => {
     }
 
     if (booking.verification.pinCode !== pinCode) {
+      
       return res.status(400).json({ message: "Invalid PIN" });
     }
 
@@ -134,8 +142,8 @@ const confirmCompletion = async (req, res) => {
 
     const SCORE_POINTS = 5;
 
-    await UserModel.findByIdAndUpdate(
-      taskerId,
+    await TaskerProfile.findByIdAndUpdate(
+      tasker._id,
       { $inc: { score: SCORE_POINTS } }
     );
 
@@ -143,11 +151,11 @@ const confirmCompletion = async (req, res) => {
     await notificationService.notifyClientBookingCompleted({
       clientId: booking.client._id,
       serviceName: booking.service?.name || 'service',
-      taskerName: booking.tasker?.name || 'Your tasker'
+      taskerName: booking.tasker?.businessName || 'Your tasker'
     });
 
     await notificationService.notifyTaskerBookingCompleted({
-      taskerId: booking.tasker._id,
+      taskerId: userId,
       serviceName: booking.service?.name || 'service'
     });
 
@@ -163,11 +171,12 @@ const requestCompletion = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { price } = req.body;
-    const taskerId = req.user.id;
+    const userId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:userId})
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     });
 
     if (!booking) {
@@ -192,15 +201,16 @@ const requestCompletion = async (req, res) => {
 const taskerDeclineBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const taskerId = req.user.id;
+    const userId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:userId})
     const notificationService = req.app.get("notificationService");
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     })
       .populate('client', 'name')
-      .populate('tasker', 'name')
+      .populate('tasker', 'businessName')
       .populate('service', 'name');
 
     if (!booking) {
@@ -234,11 +244,12 @@ const taskerDeclineBooking = async (req, res) => {
  const getTaskerBookingById = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const taskerId = req.user.id;
+    const userId = req.user.id;
+    const tasker = await TaskerProfile.findOne({userId:userId})
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      tasker: taskerId,
+      tasker: tasker._id,
     })
       .populate("service")
       .populate("client", "name phone profileImage");

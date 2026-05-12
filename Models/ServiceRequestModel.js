@@ -11,18 +11,22 @@ const BookingSchema = new mongoose.Schema(
 
     tasker: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "TaskerProfile",
       default: null,
       index: true,
     },
 
    
-    service: {
-      type: mongoose.Schema.Types.ObjectId, 
-      ref:'Service',
-      required: true,
-      index: true,
-    },
+service: {
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
+    required: true,
+  },
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  pricingType: {type:Number}
+},
 
     description: {
       type: String,
@@ -44,7 +48,12 @@ const BookingSchema = new mongoose.Schema(
 
     // --- Scheduling ---
     preferredDate: Date,
-    preferredTime: String,
+    preferredTime: Date,
+    scheduledAt: {
+     type: Date,
+     required: true,
+     index: true,
+    },
 
     
     media: [

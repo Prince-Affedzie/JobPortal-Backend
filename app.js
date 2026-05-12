@@ -8,6 +8,7 @@ require("dotenv").config()
 const {Server} = require('socket.io')
 const http = require('http')
 const {JobModel} = require('./Models/JobsModel')
+const TaskerProfile = require("./Models/TaskerModel");
 const { UserModel } = require( "./Models/UserModel")
 const {ServiceCategory} = require('./Models/ServiceCategory')
 const {MiniTask} =require("./Models/MiniTaskModel")
@@ -65,19 +66,60 @@ app.use(cors({
 }))
 
 
-const runMigrations = async () => {
+const migrateJobSeekersToTaskers = async () => {
     try {
-      await UserModel.updateMany(
-        {}, 
-        { $set: { credits: 12} }
-      );
-      console.log('All users updated with default verification status');
-    } catch (err) {
-      console.error('Error during migration:', err);
+        // 1. Connect to DB
+       
+        console.log("Connected to MongoDB...");
+
+        // 2. Fetch all users with the 'job_seeker' role
+        // We also check if they already have a TaskerProfile to avoid duplicates
+        const jobSeekers = await UserModel.find({ role: 'job_seeker' });
+        console.log(`Found ${jobSeekers.length} job seekers to migrate.`);
+
+        let successCount = 0;
+        let skippedCount = 0;
+
+        for (const user of jobSeekers) {
+            // Check if profile already exists for this user
+            const existingProfile = await TaskerProfile.findOne({ userId: user._id });
+
+            if (!existingProfile) {
+                // 3. Map User data to the new TaskerProfile model
+                // We keep their current phone, skills, and bio
+                const newProfile = new TaskerProfile({
+                    userId: user._id,
+                    skills: user.skills || [],
+                    workExperience: user.workExperience || [],
+                    workPortfolio: user.workPortfolio || [],
+                    Bio: user.Bio || "",
+                    location: user.location || { type: "Point", coordinates: [0, 0] },
+                    isVerified: user.isVerified || false
+
+                });
+
+                await newProfile.save();
+
+                // 4. Update the UserModel to link to the new profile
+                // And optionally update their role to 'tasker' if that's your new naming convention
+                user.taskerProfile = newProfile._id;
+                user.role = 'tasker'; 
+                await user.save();
+
+                successCount++;
+            } else {
+                skippedCount++;
+            }
+        }
+
+        console.log(`Migration Complete: ${successCount} created, ${skippedCount} skipped.`);
+        process.exit(0);
+
+    } catch (error) {
+        console.error("Migration failed:", error);
+        process.exit(1);
     }
-  };
-
-
+};
 
  
 const server = http.createServer(app)
@@ -97,6 +139,7 @@ mongoose.connect(process.env.DB_URL,
        .then(()=>{
          server.listen(process.env.PORT || 5000,()=>{
          console.log("Listening on Port 5000")
+        
          
         })
        })
