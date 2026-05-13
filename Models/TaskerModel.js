@@ -66,6 +66,12 @@ const taskerProfileSchema = new mongoose.Schema({
     // --- RATINGS & LOGISTICS ---
     rating: { type: Number, default: 0, index: true },
     numberOfRatings: { type: Number, default: 0 },
+    ratingsReceived:[{
+       user: {type:mongoose.Schema.Types.ObjectId,ref:'User'},
+       rating:{type:Number},
+       feedback:{type: String},
+       createdAt:{type:Date}
+    }],
     location: {
         region: String,
         city: String,

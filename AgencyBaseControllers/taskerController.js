@@ -285,6 +285,7 @@ const taskerDeclineBooking = async (req, res) => {
         arrivalConfirmedAt: booking.verification.arrivalConfirmedAt,
       };
     }
+   
 
     res.status(200).json(booking);
   } catch (err) {

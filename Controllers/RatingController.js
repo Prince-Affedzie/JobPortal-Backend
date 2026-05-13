@@ -1,45 +1,45 @@
 const { UserModel } = require("../Models/UserModel");
+const TaskerProfile = require("../Models/TaskerModel");
 
 
 const addRating = async (req, res) => {
   try {
     const { userId } = req.params; 
-    const ratedBy = req.user.id
-    const {rating, feedback } = req.body;
-     
+    const ratedBy = req.user.id;
+    const { rating, feedback } = req.body;
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
-    // Ensure user exists
-    const user = await UserModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Prevent self-rating
     if (ratedBy === userId) {
       return res.status(400).json({ message: "You cannot rate yourself" });
     }
 
-    // Add rating entry
-    user.ratingsReceived.push({
-      ratedBy,
+    const tasker = await TaskerProfile.findOne({ userId: userId });
+    if (!tasker) return res.status(404).json({ message: "Tasker not found" });
+
+    // Add the new rating to the array
+    tasker.ratingsReceived.push({
+      user: ratedBy,
       rating,
       feedback,
+      createdAt: new Date(),
     });
 
-    // Recalculate average rating
-    user.numberOfRatings = user.ratingsReceived.length;
-    user.rating =
-      user.ratingsReceived.reduce((sum, r) => sum + r.rating, 0) /
-      user.numberOfRatings;
+    // Update total count
+    tasker.numberOfRatings = tasker.ratingsReceived.length;
 
-    await user.save();
+    // Recalculate average rating
+    const total = tasker.ratingsReceived.reduce((sum, r) => sum + r.rating, 0);
+    tasker.rating = total / tasker.numberOfRatings;
+
+    await tasker.save();
 
     return res.status(201).json({
       message: "Rating added successfully",
-      rating: user.rating,
-      numberOfRatings: user.numberOfRatings,
+      rating: tasker.rating,
+      numberOfRatings: tasker.numberOfRatings,
     });
   } catch (error) {
     console.error("Error adding rating:", error);

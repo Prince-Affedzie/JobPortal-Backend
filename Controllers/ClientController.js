@@ -114,48 +114,48 @@ const postMiniTask = async (req, res) => {
 };
 
 const getBids = async (req, res) => {
-    const { Id } = req.params;
+  const { Id } = req.params;
 
-    try {
-        const minitask = await MiniTask.findById(Id).populate("bids.bidder");
+  try {
+    const minitask = await MiniTask.findById(Id).populate({
+      path: "bids.bidder",
+      populate: { path: "userId", select: "profileImage" }   
+    });
 
-        if (!minitask) {
-            return res.status(404).json({ message: "Task Not Found" });
-        }
-
-        const Bids = minitask.bids.map((bid) => ({
-            _id: bid._id,
-            amount: bid.amount,
-            message: bid.message,
-            timeline: bid.timeline,
-            createdAt: bid.createdAt,
-            bidder: {
-                _id: bid.bidder?._id,
-                name: bid.bidder?.name,
-                phone: bid.bidder?.phone,
-                profileImage: bid.bidder?.profileImage,
-                skills: bid.bidder?.skills,
-                primaryService: bid.bidder?.primaryService,
-                secondaryServices:bid.bidder?.secondaryServices,
-                education: bid.bidder?.education,
-                workExperience: bid.bidder?.workExperience,
-                workPortfolio: bid.bidder?.workPortfolio,
-                Bio: bid.bidder?.Bio,
-                location: bid.bidder?.location,
-                isVerified: bid.bidder?.isVerified,
-                vettingStatus: bid.bidder?.vettingStatus,
-                rating: bid.bidder?.rating,
-                numberOfRatings: bid.bidder?.numberOfRatings,
-                ratingsReceived: bid.bidder?.ratingsReceived,
-                createdAt:bid.bidder?.createdAt,
-            },
-        }));
-
-        return res.status(200).json(Bids);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
+    if (!minitask) {
+      return res.status(404).json({ message: "Task Not Found" });
     }
+
+    const Bids = minitask.bids.map((bid) => ({
+      _id: bid._id,
+      amount: bid.amount,
+      message: bid.message,
+      timeline: bid.timeline,
+      createdAt: bid.createdAt,
+      bidder: {
+        _id: bid.bidder?._id,                       // TaskerProfile _id (for viewing profile)
+        userId: bid.bidder?.userId?._id,            // actual user _id (for chat)
+        name: bid.bidder?.businessName,
+        brandBanner: bid.bidder?.brandBanner,
+        profileImage: bid.bidder?.userId?.profileImage,   // now populated
+        services: bid.bidder?.servicesOffered,
+        workPortfolio: bid.bidder?.workPortfolio,
+        Bio: bid.bidder?.bio,
+        location: bid.bidder?.location,
+        isVerified: bid.bidder?.isVerified,
+        vettingStatus: bid.bidder?.vettingStatus,
+        rating: bid.bidder?.rating,
+        numberOfRatings: bid.bidder?.numberOfRatings,
+        ratingsReceived: bid.bidder?.ratingsReceived,
+        createdAt: bid.bidder?.createdAt,
+      },
+    }));
+   
+    return res.status(200).json(Bids);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 const acceptBid = async (req, res) => {
