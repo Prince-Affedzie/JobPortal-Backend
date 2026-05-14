@@ -86,7 +86,6 @@ const verifyPayment = async (req, res) => {
      let taskType
      const [miniTaskExists, serviceRequestExists] = await Promise.all([
        MiniTask.exists({ _id: taskId }),
-       ServiceRequest.exists({ _id: taskId })
       ]);
 
     if (miniTaskExists) {

@@ -252,21 +252,22 @@ const assignMiniTask = async (req, res) => {
 
             )
         }
+        const tasker = await TaskerProfile.findById(applicantId)
 
         let room = await ConversationRoom.findOne({
-            participants: { $all: [id, applicantId], $size: 2 },
+            participants: { $all: [id, tasker.userId], $size: 2 },
             job: miniTask._id || null
         }).populate('participants');
 
         if (!room) {
             room = await ConversationRoom.create({
-                participants: [id, applicantId],
+                participants: [id, tasker.userId],
                 job: miniTask._id || null,
             });
         }
 
         await notificationService.sendMicroJobAssignmentNotification({
-            freelancerId: applicantId,
+            freelancerId: tasker.userId,
             jobTitle: miniTask.title,
             clientName: miniTask.employer.name,
         });
@@ -298,7 +299,15 @@ const getMyCreatedMiniTasks = async (req, res) => {
 const viewMiniTaskInfo = async(req,res)=>{
     try{
         const {Id} = req.params
-        const task = await MiniTask.findById(Id).populate("applicants").populate("assignedTo")
+        const task = await MiniTask.findById(Id).populate("applicants")
+        .populate({
+          path: "assignedTo",                       // this is the TaskerProfile
+          populate: {
+            path: "userId",                         // the User referenced inside TaskerProfile
+            select: "_id name email phone profileImage" // pick the fields you need
+          }
+        });
+        
         if(!task){
             return res.status(400).json({message: 'Task not Found'})
         }
@@ -408,7 +417,7 @@ const markTaskDoneByClient = async (req, res) => {
     const { id } = req.user;
     const notificationService = req.app.get('notificationService');
 
-    const task = await MiniTask.findById(Id).populate('employer','_id name');
+    const task = await MiniTask.findById(Id).populate('employer','_id name').populate('assignedTo','userId');
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     // Ensure only employer can mark this
@@ -419,7 +428,7 @@ const markTaskDoneByClient = async (req, res) => {
     task.markedDoneByEmployer = true;
     task.employerDoneAt = new Date();
     await notificationService.sendClientMarkedDoneNotification({
-    taskerId: task.assignedTo,
+    taskerId: task.assignedTo.userId,
     taskTitle: task.title,
     clientName:task.employer.name,
     });
@@ -429,7 +438,7 @@ const markTaskDoneByClient = async (req, res) => {
       task.status = "Completed";
       await notificationService.sendTaskCompletedNotification({
       clientId: task.employer._id,
-      taskerId: task.assignedTo,
+      taskerId: task.assignedTo.userId,
       taskTitle: task.title
     });
     }
