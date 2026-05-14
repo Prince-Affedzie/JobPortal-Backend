@@ -389,7 +389,10 @@ const assignMiniTask =async(req,res)=>{
     }
 }
 
-const getMiniTasks = async(req,res)=>{
+
+
+
+const getPublicTasks = async(req,res)=>{
     
     try{
         let query ={status:'Open'}
@@ -427,6 +430,8 @@ const getMiniTasks = async(req,res)=>{
 
     }
 }
+
+
 
 const applyOrBidMiniTask = async (req, res) => {
   try {
@@ -834,6 +839,6 @@ const viewMiniTaskInfo = async(req,res)=>{
 }
 
 
-module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,
-    jobSearchFilter,allJobs,postMiniTask,assignMiniTask,getMiniTasks, applyOrBidMiniTask ,getBids,acceptBid,removeAppliedMiniTasksFromDashboard,
+module.exports = {viewJob,viewAllApplications,viewApplication,applyToJob,jobSearch,acceptMiniTaskAssignment,rejectMiniTaskAssignment,getPublicTasks,
+    jobSearchFilter,allJobs,postMiniTask,assignMiniTask, applyOrBidMiniTask ,getBids,acceptBid,removeAppliedMiniTasksFromDashboard,
     getRecentJobApplications,getMyCreatedMiniTasks,editMiniTask,deleteMiniTask,yourAppliedMiniTasks,setSocketIO,viewMiniTaskInfo,getMicroTaskApplicants}

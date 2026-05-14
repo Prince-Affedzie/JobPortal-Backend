@@ -6,7 +6,7 @@ const {
     viewJob,
     jobSearch,
     jobSearchFilter,
-    getMiniTasks,
+    getPublicTasks,
     viewMiniTaskInfo
 } = require("../Controllers/CommonController.js");
 
@@ -17,7 +17,8 @@ commonRouter.get('/h1/v2/filter_f1', verify_token, jobSearch);
 commonRouter.get("/h1/v1/filter_f2", verify_token, jobSearchFilter);
 
 // Mini task browsing
-commonRouter.get('/h1/v2/get/mini_tasks', verify_token, getMiniTasks);
+
+commonRouter.get('/h1/v2/get/public_tasks',  getPublicTasks)
 commonRouter.get("/h1/v2/get_min_task_info/:Id", verify_token, viewMiniTaskInfo);
 
 module.exports = { commonRouter };

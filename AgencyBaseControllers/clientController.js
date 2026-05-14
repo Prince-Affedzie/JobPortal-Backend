@@ -36,7 +36,7 @@ const createBooking = async (req, res) => {
         serviceId: serviceDoc._id,
         name: serviceDoc.name,
         price: serviceDoc.price,
-        priceType:serviceDoc.priceType
+        priceType:serviceDoc.pricingType
       },
       description,
       address,

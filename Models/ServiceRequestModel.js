@@ -25,7 +25,7 @@ service: {
   },
   name: { type: String, required: true },
   price: { type: Number, required: true },
-  pricingType: {type:Number}
+  pricingType: {type:String}
 },
 
     description: {

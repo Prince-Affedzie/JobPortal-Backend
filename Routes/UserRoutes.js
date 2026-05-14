@@ -32,7 +32,7 @@ userRouter.post('/user/athenticate',verify_token,chat )
 userRouter.post('/notifications',verify_token,createNotification)
 userRouter.get('/notifications',verify_token,getNotifications)
 userRouter.put('/mark_notifications/read',verify_token,markNotificationAsRead)
-userRouter.post('/user/upload_portfolio',verify_token,generatePortfolioUploadURL)
+userRouter.post('/user/upload_portfolio',verify_token, upload.array('files', 6),generatePortfolioUploadURL)
 
 userRouter.delete('/delete/notification/:Id',verify_token,deleteNotification)
 userRouter.post('/delete/bulk_notification',verify_token,deleteBulkNotification)

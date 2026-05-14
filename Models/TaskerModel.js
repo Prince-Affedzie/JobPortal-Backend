@@ -45,7 +45,7 @@ const taskerProfileSchema = new mongoose.Schema({
     workPortfolio: [{
         title: String,
         description: String,
-        images: [String], // Array of project photos
+        files: [String], 
         completedAt: Date
     }],
     

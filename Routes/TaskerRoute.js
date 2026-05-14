@@ -26,7 +26,10 @@ const {
     getBidById,
     updateBid ,
     withdrawBid,
+    getMiniTasks,
 } = require("../Controllers/TaskerController.js");
+
+taskerRouter.get('/h1/v2/get/mini_tasks', verify_token, getMiniTasks);
 
 // Profile Management
 taskerRouter.post('/tasker/onboard',verify_token,upload.fields([

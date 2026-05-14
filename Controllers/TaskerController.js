@@ -10,6 +10,48 @@ const { getUploadURL, getPublicURL,deleteFromS3,deleteMultipleFromS3, } = requir
 const { matchApplicantsWithPipeline } = require('../Services/MicroJob_Applicants_Sorting');
 const {ensureRecipientForBeneficiary} = require('../Controllers/PaymentController')
 
+
+
+const getMiniTasks = async(req,res)=>{
+    
+    try{
+        let query ={status:'Open'}
+        
+        const {search,category,subcategory,location, modeofDelivery} = req.query
+        if(category && category !== "All Categories"){
+            query.category = category
+        }
+        if(subcategory && subcategory !== "All Subcategories"){
+            query.subcategory = subcategory
+        }
+
+        if(location && location !== "All Regions"){
+            query['address.region'] = location
+        }
+        if( modeofDelivery && modeofDelivery !=="All Modes"){
+            query.locationType =  modeofDelivery
+        }
+        
+        if(search){
+
+            query.$or =[
+                {title:{$regex:search,$options:'i'}},
+                {description:{$regex:search,$options:'i'}}
+            ]
+
+        }
+        
+        const miniTasks = await MiniTask.find(query).sort({createdAt:-1}).populate("employer","name phone isVerified")
+        res.status(200).json(miniTasks)
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({message:"Internal Server Error"})
+
+    }
+}
+
+
 const Taskerboarding = async (req, res) => {
   try {
     const {
@@ -950,15 +992,14 @@ const deletePaymentMethod = async (req, res) => {
 const addWorkSamplesToProfile = async(req,res)=>{
   try{
     const {id} = req.user
-    const {workPortfolio} = req.body
     const user = await UserModel.findById(id)
     const tasker = await TaskerProfile.findOne({userId:id})
     if(!tasker){
       return res.status(500).json({message:"Tasker Account doesn't exist"})
     }
-
-    tasker.workPortfolio.push(workPortfolio)
-    await user.save()
+    
+    tasker.workPortfolio.push(req.body)
+    await tasker.save()
     res.status(200).json({message:"Work Samples Added Successfully"})
 
 
@@ -981,6 +1022,7 @@ const removeWorkSample = async (req, res) => {
     }
 
     // Check if the work sample exists in user's portfolio
+    console.log(tasker)
     const sampleExists = tasker.workPortfolio.some(sample => sample._id.toString() === sampleId);
     if (!sampleExists) {
       return res.status(404).json({ message: "Work sample not found" });
@@ -1182,6 +1224,7 @@ const withdrawBid = async (req, res) => {
 
 
 module.exports = {
+  getMiniTasks,
     applyOrBidMiniTask,
     acceptMiniTaskAssignment,
     rejectMiniTaskAssignment,
