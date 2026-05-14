@@ -18,14 +18,15 @@ const createBooking = async (req, res) => {
       preferredTime,   // now destructured
       media,
     } = req.body;
-
+  
     // Fetch tasker & service details
     const taskerDoc = await TaskerProfile.findById(tasker);
-   
+    console.log(taskerDoc)
     if (!taskerDoc) return res.status(404).json({ message: 'Tasker not found' });
+    
 
     const serviceDoc = taskerDoc.servicesOffered.id(service);
-    if (!serviceDoc) return res.status(400).json({ message: 'Invalid service' });
+    
 
     const scheduledAt = new Date(`${preferredDate}T${preferredTime}:00`);
 
@@ -33,7 +34,7 @@ const createBooking = async (req, res) => {
       client: clientId,
       tasker,
       service: {
-        serviceId: serviceDoc._id,
+        serviceId: serviceDoc._id || null,
         name: serviceDoc.name,
         price: serviceDoc.price,
         priceType:serviceDoc.pricingType

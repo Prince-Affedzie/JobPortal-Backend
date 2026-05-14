@@ -539,7 +539,7 @@ const acceptMiniTaskAssignment = async (req, res) => {
             return res.status(400).json({ message: "Task not Found." });
         }
 
-        if (tasker._id !== task.assignedTo.toString()) {
+        if (tasker._id.toString() !== task.assignedTo.toString()) {
             return res.status(400).json({ message: "Task Hasn't been assigned to you yet" });
         }
 
@@ -1053,7 +1053,7 @@ const getBidById = async (req, res) => {
         const { bidId } = req.params;
         const userId = req.user.id;
         const tasker = await TaskerProfile.findOne({userId:userId})
-        console.log("I'm receiving request")
+        
 
         
     const task = await MiniTask.findOne({
@@ -1102,8 +1102,7 @@ const getBidById = async (req, res) => {
                 employer: task.employer
             }
         };
-        console.log(bidData)
-
+       
         res.status(200).json(bidData);
     } catch (error) {
         console.error('Error fetching bid:', error);

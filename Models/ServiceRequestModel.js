@@ -21,7 +21,7 @@ service: {
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Service',
-    required: true,
+    
   },
   name: { type: String, required: true },
   price: { type: Number, required: true },
