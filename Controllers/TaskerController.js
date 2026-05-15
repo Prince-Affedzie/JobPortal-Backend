@@ -63,6 +63,7 @@ const Taskerboarding = async (req, res) => {
       servicesOffered,  
       bio,
       location,
+      tags,
     } = req.body;
 
     const { id } = req.user;
@@ -96,6 +97,7 @@ const Taskerboarding = async (req, res) => {
     if (businessName !== undefined) profile.businessName = businessName;
     if (tagline !== undefined) profile.tagline = tagline;
     if (bio !== undefined) profile.bio = bio;
+    
     if (servicesOffered) {
      let services = servicesOffered;
   // Parse if it came as a JSON string (FormData doesn't automatically parse)
@@ -115,44 +117,24 @@ const Taskerboarding = async (req, res) => {
    }
  }  
 
-    // --- 5. Services offered ---
-   { /*if (servicesOffered && Array.isArray(servicesOffered)) {
-      const processedServices = [];
+  if (tags) {
+  let parsedTags = tags;
+  if (typeof tags === 'string') {
+    try {
+      parsedTags = JSON.parse(tags);
+    } catch (err) {
+      console.error('Failed to parse tags:', err);
+      return res.status(400).json({ message: 'Invalid tags format' });
+    }
+  }
 
-      for (const item of servicesOffered) {
-        if (typeof item === 'string') {
-        
-          const service = await Service.findOne({ name: item });
-          if (service) {
-            processedServices.push({
-              serviceId: service._id,
-              name: service.name,
-              description: '',
-              priceType: 'negotiable',
-              price: 0,
-              currency: 'GHS',
-            });
-          }
-        } else if (item.name) {
-        
-          let serviceId = item.serviceId;
-          if (!serviceId && item.name) {
-            const service = await Service.findOne({ name: item.name });
-            serviceId = service?._id || null;
-          }
-          processedServices.push({
-            serviceId: serviceId,
-            name: item.name,
-            description: item.description || '',
-            priceType: item.priceType || 'negotiable',
-            price: item.price || 0,
-            currency: item.currency || 'GHS',
-          });
-        }
-      }
-
-      profile.servicesOffered = processedServices;
-    }  */}
+  // Ensure it’s an array before assignment
+  if (Array.isArray(parsedTags)) {
+    profile.tags = parsedTags;
+  } else {
+    return res.status(400).json({ message: 'Tags must be an array' });
+  }
+}
    
     if (location) {
       // Support both the structured {region, city, ...} and flat {suburb, town, ...}
@@ -201,8 +183,7 @@ const updateTaskerProfile = async (req, res) => {
   try {
     const { id } = req.user;
     const updates = req.body;
-   
-
+    
     // Allowed fields list
     const allowedFields = [
       "providerType",
@@ -214,6 +195,7 @@ const updateTaskerProfile = async (req, res) => {
       "workPortfolio",
       "businessRegistrationNo",
       "location",
+      "tags",
     ];
 
     const updateData = {};
@@ -238,6 +220,14 @@ const updateTaskerProfile = async (req, res) => {
         updateData.workPortfolio = JSON.parse(updateData.workPortfolio);
       } catch (err) {
         return res.status(400).json({ message: "Invalid JSON in workPortfolio" });
+      }
+    }
+
+     if (updateData.tags && typeof updateData.tags === "string") {
+      try {
+        updateData.tags = JSON.parse(updateData.tags);
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid JSON in tags" });
       }
     }
     // Parse location if it’s a JSON string (could happen if nested object stringified)
@@ -713,7 +703,7 @@ const yourAppliedMiniTasks = async (req, res) => {
 
         applications.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
         bids.sort((a, b) => new Date(b.bid.createdAt) - new Date(a.bid.createdAt));
-        console.log(bids)
+        
 
         res.status(200).json({
             applications,

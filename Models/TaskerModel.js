@@ -62,6 +62,11 @@ const taskerProfileSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId, 
         ref:'MiniTask'
     }],
+    tags:[
+     {
+        type:String
+     }
+    ],
 
     // --- RATINGS & LOGISTICS ---
     rating: { type: Number, default: 0, index: true },
