@@ -265,8 +265,11 @@ const updateTaskerProfile = async (req, res) => {
     const updatedProfile = await TaskerProfile.findOneAndUpdate(
       { userId: id },
       { $set: updateData },
-      { new: true, runValidators: true }
-    );
+      { new: true, 
+       upsert: true,
+       runValidators: true 
+      }
+      );
 
     if (!updatedProfile) {
       return res.status(404).json({ message: "Tasker profile not found" });
