@@ -3,22 +3,35 @@ const {getUploadURL, getPublicURL} = require('./aws_S3_file_Handling')
 
 const generatePortfolioUploadURL = async (req, res) => {
   try {
-     const files = req.files;   // array of uploaded files (multer)
+    const files = req.files;   // multer array
     if (!files || files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
     }
-    const uploadedUrls = [];
+
+    const { v4: uuidv4 } = await import('uuid');
+    const uploadUrls = [];
+    const publicUrls = [];
+
     for (const file of files) {
-      const fileKey = `workPortfolios/${req.user.id}/${Date.now()}-${file.originalname}`;
-      // upload file.buffer to S3 with file.mimetype ...
+      // Unique key per file (use UUID for safety)
+      const UID = uuidv4();
+      const uniqueId = UID.substring(0, 8);
+      const fileKey = `workPortfolios/${req.user.id}/${uniqueId}-${file.originalname}`;
+
+      const uploadUrl = await getUploadURL(fileKey, file.mimetype);
       const publicUrl = getPublicURL(fileKey);
-      uploadedUrls.push(publicUrl);
+
+      uploadUrls.push(uploadUrl);
+      publicUrls.push(publicUrl);
     }
-    console.log( uploadedUrls)
-    res.status(200).json({ urls: uploadedUrls })
+
+    res.status(200).json({
+      uploadUrls,   // note capital "U"
+      publicUrls,
+    });
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ error: 'Failed to generate upload URL', details: err });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate upload URLs', details: err.message });
   }
 };
 

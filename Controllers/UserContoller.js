@@ -558,7 +558,7 @@ const chat = async (req, res) => {
        if(!findUser){
         res.status(404).json({message:'User Account not Found'})
        }
-       findUser.role === 'job_seeker'?findUser.role = 'client':findUser.role = 'tasker'
+       findUser.role === 'tasker'?findUser.role = 'client':findUser.role = 'tasker'
        await findUser.save()
        res.status(200).json({message:'Account Switch Successful',user:findUser})
 
