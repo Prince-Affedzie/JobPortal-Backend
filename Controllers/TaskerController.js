@@ -271,10 +271,6 @@ const updateTaskerProfile = async (req, res) => {
       }
       );
 
-    if (!updatedProfile) {
-      return res.status(404).json({ message: "Tasker profile not found" });
-    }
-
     res.status(200).json({
       message: "Profile updated successfully",
       taskerProfile: updatedProfile,
