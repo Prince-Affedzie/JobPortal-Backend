@@ -865,6 +865,27 @@ async notifyNewChatMessage({ receiverId, senderName, preview, roomTitle }) {
 
 
 
+async adminNotification({ title, message }) {
+  try {
+    const users = await UserModel.find({role:'admin'}).select('_id');
+
+    for (const user of users) {
+      await this.sendNotification({
+        userId: user._id,
+        title: this.formatAdminTitle(title),
+        message
+      });
+    }
+
+    console.log(`Admin broadcast sent to ${users.length} users`);
+  } catch (error) {
+    console.error('Admin broadcast notification error:', error);
+  }
+}
+
+
+
+
 }
 
 module.exports = NotificationService;

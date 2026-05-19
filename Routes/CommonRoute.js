@@ -19,6 +19,6 @@ commonRouter.get("/h1/v1/filter_f2", verify_token, jobSearchFilter);
 // Mini task browsing
 
 commonRouter.get('/h1/v2/get/public_tasks',  getPublicTasks)
-commonRouter.get("/h1/v2/get_min_task_info/:Id", verify_token, viewMiniTaskInfo);
+commonRouter.get("/h1/v2/get_min_task_info/:Id", viewMiniTaskInfo);
 
 module.exports = { commonRouter };

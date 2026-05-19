@@ -45,7 +45,7 @@ clientRouter.delete("/h1/v2/delete/mini_task/:Id", verify_token,  deleteMiniTask
 clientRouter.get('/h1/v2/get_all_payments',verify_token,viewAllPayments)
 
 // Taskers Searching
-clientRouter.post('/h1/v2/taskers-search',verify_token, searchTaskers)
+clientRouter.post('/h1/v2/taskers-search', searchTaskers)
 clientRouter.get('/h1/v2/taskers-get',verify_token,getTaskers)
-clientRouter.get("/h1/v2/tasker/:taskerId",verify_token,getTasker)
+clientRouter.get("/h1/v2/tasker/:taskerId",getTasker)
 module.exports = { clientRouter };

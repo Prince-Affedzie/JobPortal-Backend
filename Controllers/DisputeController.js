@@ -64,8 +64,15 @@ const createDispute = async (req, res) => {
       taskTitle: tasktitle,
       reportedBy: reportedBy,
     });
+   const title = "🚨 New Report Submitted"
+   const message = `${reportedBy || 'A user'} has reported an issue regarding "${tasktitle || 'a task'}" for ${reason || 'a policy violation'}. Please review the report details and take appropriate action within 24 hours.`
 
-    processEvent('DISPUTE_RAISED', dispute);
+  await notificationService.adminNotification({
+    title,
+    message,
+  });
+
+  processEvent('DISPUTE_RAISED', dispute);
 
     res.status(200).json(dispute);
   } catch (err) {
