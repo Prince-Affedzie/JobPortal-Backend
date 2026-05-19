@@ -120,12 +120,19 @@ mongoose.connect(process.env.DB_URL,
       console.log('MongoDB disconnected');
     });
 
-const io = new Server(server,{
-    cors:{
-        origin:process.env.Frontend_Url,
-        credentials:true,
-        methods: ['GET', 'POST']
-    }
+const io = new Server(server, {
+  cors: {
+    origin: process.env.Frontend_Url,
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
+  // ── Connection reliability settings ───────────────────────────────
+  pingTimeout: 60000,        // how long to wait for pong before disconnecting
+  pingInterval: 25000,       // how often to ping the client
+  connectTimeout: 45000,     // how long to wait for initial connection
+  // ── Reconnection ─────────────────────────────────────────────────
+  allowEIO3: true,           // allow Engine.IO v3 clients
+  transports: ['websocket', 'polling'], // try WebSocket first, fall back to polling
 })
 
 const { broadcastAdminAlert } = initAdminSocketIO(io);
@@ -134,17 +141,41 @@ app.set('broadcastAdminAlert', broadcastAdminAlert);
 io.use(authenticateSocketConnection)
 const notificationService = new NotificationService(io);
 
-io.on('connection',(socket)=>{
-    const userId = socket.user.id
-    console.log('Someone joined the connection')
-    socket.join(userId)
-    socketHandler(io,socket,notificationService)
+io.on('connection', (socket) => {
+  const userId = socket.user?.id;
+  
+  if (!userId) {
+    console.error('Socket connected without user ID – disconnecting');
+    socket.disconnect(true);
+    return;
+  }
 
-    socket.on('disconnect',()=>{
-        console.log("User Disconnected")
-    })
+  console.log(`✅ User connected: ${userId} (socket: ${socket.id})`);
+  socket.join(userId);
+  
+  // Pass socket to message handler
+  socketHandler(io, socket, notificationService);
 
-})
+  // ── Reconnection tracking ────────────────────────────────────────
+  socket.on('disconnect', (reason) => {
+    console.log(`❌ User disconnected: ${userId} — Reason: ${reason}`);
+    
+    // If the disconnection was not intentional (server-side), log it for monitoring
+    if (reason === 'transport error' || reason === 'ping timeout') {
+      console.warn(`⚠️ Abnormal disconnect for user ${userId}`);
+    }
+  });
+
+  // Handle explicit reconnection acknowledgment
+  socket.on('reconnect_attempt', () => {
+    console.log(`🔄 Reconnection attempt for user ${userId}`);
+  });
+  
+  socket.on('error', (err) => {
+    console.error(`Socket error for user ${userId}:`, err.message);
+  });
+});
+
 
 app.use("/api",userRouter)
 app.use("/api",employerRoute)
