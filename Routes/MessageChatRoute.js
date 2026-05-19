@@ -4,11 +4,13 @@ const {upload} = require('../Config/Mutler')
 const {verify_token} = require("../MiddleWare/VerifyToken")
 
 const { createOrGetRoom,getMessagesByRoom,sendMessage,approveMessageFile,
-    markAsRead,fetchRooms,handleChatFileUpload,fetchRoomInfo} = require('../Controllers/MessagingController')
+    markAsRead,fetchRooms,handleChatFileUpload,fetchRoomInfo,blockUser,reportMessage} = require('../Controllers/MessagingController')
 chatMessagingRoute.post('/start/chat_room',verify_token, createOrGetRoom)
 chatMessagingRoute.get('/get/chat_room_messages/:roomId',verify_token, getMessagesByRoom)
 chatMessagingRoute.get('/get/messages/rooms',verify_token,fetchRooms)
 chatMessagingRoute.post('/handle/chat_files', verify_token,upload.single('file'),handleChatFileUpload)
 chatMessagingRoute.post('/send/message',verify_token,sendMessage)
 chatMessagingRoute.get('/get_room_info/:roomId',verify_token,fetchRoomInfo)
+chatMessagingRoute.post("/block/user_chat/:userId",verify_token,blockUser)
+chatMessagingRoute.post("/chat/report/:messageId",verify_token,reportMessage)
 module.exports = {chatMessagingRoute}

@@ -16,6 +16,10 @@ const DisputeSchema = new mongoose.Schema({
      type: mongoose.Schema.Types.ObjectId,
      ref:'MiniTask'
   },
+  messageId:{
+     type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+  },
   submissionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'WorkSubmission',

@@ -4,6 +4,8 @@ const {WorkSubmissionModel} = require('../Models/WorkSubmissionModel');
 const {NotificationModel} = require('../Models/NotificationModel')
 const { getUploadURL, getPublicURL } = require('../Services/aws_S3_file_Handling');
 const {processEvent} = require('../Services/adminEventService')
+const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 
 let socketIO = null;
 
@@ -29,37 +31,48 @@ const generateEvidenceUploadURL = async (req, res) => {
 };
 
 
+
 const createDispute = async (req, res) => {
   try {
-    const { against, submissionId, reason, taskId, details, evidence,tasktitle,reportedBy } = req.body;
+    const { against, submissionId, reason, taskId, details, evidence, tasktitle, reportedBy } = req.body;
     const notificationService = req.app.get('notificationService');
-    
     const raisedBy = req.user.id;
 
-    const dispute = await Dispute.create({
+    // Build dispute data
+    const disputeData = {
       raisedBy,
       against,
-      taskId,
-      submissionId,
       reason,
       details,
-      evidence
-    });
+      evidence,
+    };
+
+    // Only include taskId if it's a valid ObjectId
+    if (taskId && ObjectId.isValid(taskId)) {
+      disputeData.taskId = taskId;
+    }
+
+    // Only include submissionId if provided and valid
+    if (submissionId && ObjectId.isValid(submissionId)) {
+      disputeData.submissionId = submissionId;
+    }
+
+    const dispute = await Dispute.create(disputeData);
 
     await notificationService.sendDisputeRaisedNotification({
-      opponent:dispute.against,
+      opponent: dispute.against,
       taskTitle: tasktitle,
-      reportedBy:reportedBy
-    }) 
-    processEvent('DISPUTE_RAISED',dispute);
+      reportedBy: reportedBy,
+    });
+
+    processEvent('DISPUTE_RAISED', dispute);
 
     res.status(200).json(dispute);
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res.status(500).json({ message: 'Failed to raise dispute', error: err });
   }
 };
-
 // Get all disputes for admin
 const getAllDisputes = async (req, res) => {
   

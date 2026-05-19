@@ -1,6 +1,7 @@
 // controllers/messageController.js
 const ConversationRoom = require('../Models/ConversationRoom');
 const Message = require('../Models/MessageModel');
+const Dispute = require('../Models/DisputeModel');
 const {UserModel} = require('../Models/UserModel');
 const  cloudinary =require('../Config/Cloudinary')
 const { uploader } = cloudinary; 
@@ -195,5 +196,67 @@ const fetchRooms = async(req,res)=>{
   }
 }
 
+const blockUser = async (req, res) => {
+  try{
+  const currentUserId = req.user.id
+  const { userId } = req.params;
+  if (currentUserId === userId) {
+      return res.status(400).json({ message: 'You cannot block yourself' });
+  }
+  const rooms = await ConversationRoom.find({participants:{ $all: [currentUserId, userId] }})
+  if (rooms.length > 0) {
+      const roomIds = rooms.map(room => room._id);
+      await Message.deleteMany({
+        room: { $in: roomIds },
+        sender: { $in: [currentUserId, userId] }
+      });
+
+     
+       await ConversationRoom.deleteMany({ _id: { $in: roomIds } });
+    }
+
+    await Dispute.create({
+      raisedBy: currentUserId,
+      against: userToBlock,
+      reason: 'User blocked another user - review for objectionable content',
+      createdAt: new Date(),
+    });
+
+  
+   res.status(200).json({
+      success: true,
+      message: 'User blocked successfully. All messages have been removed.',
+      roomsCleared: rooms.length,
+   });
+  }catch (err) {
+    console.error('Block user error:', err);
+    res.status(500).json({ message: 'Failed to block user', error: err.message });
+  }
+}
+
+const reportMessage = async (req, res) => {
+  try{
+
+  const { messageId } = req.params;
+  const userId = req.user.id
+  const { reason,reportedUser } = req.body;
+  const message = await Message.findById(messageId);
+  if(!message){
+    return res.status(404).json({message:"Message not found"})
+  }
+  await Dispute.create({
+      raisedBy: userId,
+      against: reportedUser,
+      reason: reason,
+      messageId:message._id,
+      createdAt: new Date(),
+    });
+  
+  res.status(200).json({ success: true,message:"Report successfully made" });
+ }catch(err){
+    console.error('Report message error:', err);
+    res.status(500).json({ message: 'Failed to report message', error: err.message });
+ }};
+
 module.exports ={ createOrGetRoom,getMessagesByRoom,sendMessage,approveMessageFile,markAsRead,
-  fetchRooms,handleChatFileUpload,deleteMessage,fetchRoomInfo }
+  fetchRooms,handleChatFileUpload,deleteMessage,fetchRoomInfo ,blockUser,reportMessage}
