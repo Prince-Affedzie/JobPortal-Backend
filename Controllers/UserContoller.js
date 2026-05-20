@@ -109,43 +109,74 @@ const signUp = async(req,res)=>{
 }
 
 const appleSignUpOrLogin = async (req, res) => {
-  const {appleUserId,email, token,firstName, lastName, role} = req.body;
-  try {
+  const { appleUserId, email, token, firstName, lastName, role } = req.body;
 
+  try {
     if (!appleUserId) {
       return res.status(400).json({ success: false, message: 'Apple ID is required' });
     }
 
+    // ── Returning user ───────────────────────────────────────────────────
     let user = await UserModel.findOne({ appleId: appleUserId });
-
     if (user) {
-       const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"1d"});
-       res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
-       return res.status(200).json({message:"Login Successful",role:user.role,user:user,token:apptoken});
+      const apptoken = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.token,
+        { expiresIn: '1d' }
+      );
+      res.cookie('token', apptoken, { httpOnly: true, sameSite: 'None', secure: true });
+      return res.status(200).json({
+        message: 'Login Successful',
+        role: user.role,
+        user,
+        token: apptoken,
+      });
     }
 
-    const name = firstName +" "+lastName;
-    // Create the new user
+   
+    if (!role || !['tasker', 'employer', 'client', 'admin'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid role is required (tasker or client).',
+      });
+    }
+
+    const name = `${firstName || ''} ${lastName || ''}`.trim();
+
+    // Apple may not always return email — provide a fallback
+    const userEmail = email || `${appleUserId}@apple.user`;
+
     user = new UserModel({
-      name:name || '',
-      email: email, 
+      name: name || 'Apple User',
+      email: userEmail,
       appleId: appleUserId,
-      role:role,
-      
+      role,
     });
 
     await user.save();
-    const apptoken = jwt.sign({id:user._id,role:user.role},process.env.token,{expiresIn:"30d"})
-    res.cookie("token",apptoken,{httpOnly:true,sameSite:"None",secure:true})
 
-    return res.status(200).json({success:true,message:"Registration Successful",role:user.role,user:user,token:apptoken});
+    const apptoken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.token,
+      { expiresIn: '1d' }
+    );
+    res.cookie('token', apptoken, { httpOnly: true, sameSite: 'None', secure: true });
 
+    return res.status(200).json({
+      success: true,
+      message: 'Registration Successful',
+      role: user.role,
+      user,
+      token: apptoken,
+    });
   } catch (error) {
     console.error('Apple Auth Controller Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error during Apple authentication' });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during Apple authentication',
+    });
   }
 };
-
 
 const google_login = async(req,res)=>{
    const {token} = req.body
