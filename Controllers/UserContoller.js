@@ -116,7 +116,7 @@ const appleSignUpOrLogin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Apple ID is required' });
     }
 
-    // ── Returning user ───────────────────────────────────────────────────
+  
     let user = await UserModel.findOne({ appleId: appleUserId });
     if (user) {
       const apptoken = jwt.sign(
@@ -143,7 +143,7 @@ const appleSignUpOrLogin = async (req, res) => {
 
     const name = `${firstName || ''} ${lastName || ''}`.trim();
 
-    // Apple may not always return email — provide a fallback
+    
     const userEmail = email || `${appleUserId}@apple.user`;
 
     user = new UserModel({
