@@ -217,7 +217,7 @@ const blockUser = async (req, res) => {
 
     await Dispute.create({
       raisedBy: currentUserId,
-      against: userToBlock,
+      against: userId,
       reason: 'User blocked another user - review for objectionable content',
       createdAt: new Date(),
     });
