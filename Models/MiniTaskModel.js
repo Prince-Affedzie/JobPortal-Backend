@@ -47,7 +47,7 @@ const miniTaskSchema = new Schema({
     description: { type: String, required: true },
     employer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    biddingType: { type: String, enum: ["fixed", "open-bid","negotiation"], default: "fixed" }, 
+    biddingType: { type: String, enum: ["fixed", "open-bid","negotiation"], default: "open-bid" }, 
     budget: { type: Number },
     finalAmount: { type: Number, default: null },
 
